@@ -69,8 +69,7 @@ def cancel_download(download_id: str) -> bool:
     state = _downloads.get(download_id)
     if state is None or state.task is None:
         return False
-    state.task.cancel()
-    return True
+    return state.task.cancel()
 
 
 def list_downloads() -> list[DownloadState]:

@@ -61,3 +61,11 @@ async def test_cancel_download_marks_cancelled():
 
 def test_cancel_unknown_download_returns_false():
     assert cancel_download("does-not-exist") is False
+
+
+async def test_cancel_completed_download_returns_false():
+    with patch("app.services.downloads.hf_hub_download", side_effect=fake_hf_hub_download):
+        state = await start_download("org/model", "model.gguf")
+        await state.task
+        assert state.status == "complete"
+        assert cancel_download(state.id) is False
