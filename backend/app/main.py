@@ -2,11 +2,36 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.errors import register_error_handlers
 from app.routes.browse import router as browse_router
 from app.routes.downloads import router as downloads_router
 from app.routes.manage import router as manage_router
+
+
+class SPAStaticFiles(StaticFiles):
+    """StaticFiles that falls back to index.html for unmatched GET/HEAD paths.
+
+    A plain `StaticFiles(html=True)` mount only serves `index.html` for the
+    mount root (or a directory containing one) - a request for a
+    react-router client-side route like `/browse/some-model` has no matching
+    file on disk, so it 404s instead of letting the SPA's router handle it.
+    Overriding `get_response` to retry with `index.html` on a 404 restores
+    the expected "deep link refresh works" behavior, and does so without
+    needing a separate catch-all route: because `Mount("/")` matches every
+    path with a full match, any route registered *after* it in the app's
+    router is unreachable, so the fallback has to live inside this app.
+    """
+
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404:
+                return await super().get_response("index.html", scope)
+            raise
+
 
 app = FastAPI(title="Swapyard")
 register_error_handlers(app)
@@ -22,4 +47,4 @@ async def health() -> dict[str, str]:
 
 FRONTEND_DIST_DIR = (Path(__file__).parent.parent.parent / "frontend" / "dist").resolve()
 if FRONTEND_DIST_DIR.is_dir():
-    app.mount("/", StaticFiles(directory=str(FRONTEND_DIST_DIR), html=True), name="frontend")
+    app.mount("/", SPAStaticFiles(directory=str(FRONTEND_DIST_DIR), html=True), name="frontend")
