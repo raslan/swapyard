@@ -1,0 +1,113 @@
+import type { DownloadState } from "@/types/download";
+import type { ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
+
+async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const resp = init === undefined ? await fetch(url) : await fetch(url, init);
+  if (!resp.ok) {
+    throw new Error(`Request to ${url} failed with ${resp.status}`);
+  }
+  return resp.status === 204 || typeof resp.json !== "function" ? (undefined as T) : ((await resp.json()) as T);
+}
+
+export async function searchModels(query: string): Promise<ModelSummary[]> {
+  const raw = await request<
+    { repo_id: string; author: string; downloads: number; likes: number; tags: string[] }[]
+  >(`/api/browse/search?q=${encodeURIComponent(query)}`);
+  return raw.map((m) => ({
+    repoId: m.repo_id,
+    author: m.author,
+    downloads: m.downloads,
+    likes: m.likes,
+    tags: m.tags,
+  }));
+}
+
+export async function getModelDetail(repoId: string): Promise<ModelDetail> {
+  const raw = await request<{
+    repo_id: string;
+    author: string;
+    downloads: number;
+    likes: number;
+    readme: string;
+    files: { name: string; size: number; category: "gguf" | "mmproj" | "other" }[];
+  }>(`/api/browse/models/${repoId}`);
+  return {
+    repoId: raw.repo_id,
+    author: raw.author,
+    downloads: raw.downloads,
+    likes: raw.likes,
+    readme: raw.readme,
+    files: raw.files,
+  };
+}
+
+export async function listManagedModels(sort: "size" | "name"): Promise<ManagedModel[]> {
+  const raw = await request<
+    { repo_id: string; size_on_disk: number; nb_files: number; last_modified: number }[]
+  >(`/api/manage/models?sort=${sort}`);
+  return raw.map((m) => ({
+    repoId: m.repo_id,
+    sizeOnDisk: m.size_on_disk,
+    nbFiles: m.nb_files,
+    lastModified: m.last_modified,
+  }));
+}
+
+export async function deleteManagedModel(repoId: string): Promise<void> {
+  await request<void>(`/api/manage/models/${repoId}`, { method: "DELETE" });
+}
+
+export async function startDownload(repoId: string, filename: string): Promise<{ id: string }> {
+  return request<{ id: string }>("/api/downloads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo_id: repoId, filename }),
+  });
+}
+
+function toDownloadState(raw: {
+  id: string;
+  repo_id: string;
+  filename: string;
+  total: number;
+  downloaded: number;
+  status: DownloadState["status"];
+  error: string | null;
+}): DownloadState {
+  return {
+    id: raw.id,
+    repoId: raw.repo_id,
+    filename: raw.filename,
+    total: raw.total,
+    downloaded: raw.downloaded,
+    status: raw.status,
+    error: raw.error,
+  };
+}
+
+export async function listActiveDownloads(): Promise<DownloadState[]> {
+  const raw = await request<Parameters<typeof toDownloadState>[0][]>("/api/downloads");
+  return raw.map(toDownloadState);
+}
+
+export async function cancelDownload(id: string): Promise<void> {
+  await request<void>(`/api/downloads/${id}`, { method: "DELETE" });
+}
+
+export function subscribeToDownload(
+  id: string,
+  onUpdate: (state: DownloadState) => void,
+  onDone: (state: DownloadState) => void,
+): () => void {
+  const source = new EventSource(`/api/downloads/${id}/events`);
+
+  source.addEventListener("progress", (event) => {
+    onUpdate(toDownloadState(JSON.parse((event as MessageEvent).data)));
+  });
+  source.addEventListener("done", (event) => {
+    onDone(toDownloadState(JSON.parse((event as MessageEvent).data)));
+    source.close();
+  });
+
+  return () => source.close();
+}
