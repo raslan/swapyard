@@ -15,7 +15,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/browse" replace /> },
       { path: "browse", element: <BrowsePage /> },
-      { path: "browse/:repoId", element: <BrowseDetailPage /> },
+      { path: "browse/*", element: <BrowseDetailPage /> },
       { path: "manage", element: <ManagePage /> },
     ],
   },
