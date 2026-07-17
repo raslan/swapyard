@@ -10,18 +10,22 @@ export function useModelDetail(repoId: string) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(false);
-    getModelDetail(repoId)
-      .then((d) => {
-        if (!cancelled) setDetail(d);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(false);
+      getModelDetail(repoId)
+        .then((d) => {
+          if (!cancelled) setDetail(d);
+        })
+        .catch(() => {
+          if (!cancelled) setError(true);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    });
 
     return () => {
       cancelled = true;
