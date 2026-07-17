@@ -29,3 +29,18 @@ class ModelDetailResponse(BaseModel):
     likes: int
     readme: str
     files: list[ModelFileResponse]
+
+
+class StartDownloadRequest(BaseModel):
+    repo_id: str
+    filename: str
+
+
+class DownloadStateResponse(BaseModel):
+    id: str
+    repo_id: str
+    filename: str
+    total: int
+    downloaded: int
+    status: str
+    error: str | None = None
