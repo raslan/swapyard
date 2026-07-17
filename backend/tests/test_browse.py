@@ -24,7 +24,7 @@ def test_search_models_uses_gguf_filter(mock_hf_api_cls):
     results = search_models("llama")
 
     mock_api.list_models.assert_called_once_with(
-        search="llama", filter="gguf", sort="downloads", direction=-1, limit=20
+        search="llama", filter="gguf", sort="downloads", limit=20
     )
     assert results[0].repo_id == "org/model"
     assert results[0].downloads == 100

@@ -48,9 +48,7 @@ def _categorize_file(filename: str) -> str | None:
 
 def search_models(query: str | None) -> list[ModelSummary]:
     api = HfApi()
-    results = api.list_models(
-        search=query or "", filter="gguf", sort="downloads", direction=-1, limit=20
-    )
+    results = api.list_models(search=query or "", filter="gguf", sort="downloads", limit=20)
     return [
         ModelSummary(
             repo_id=m.id,
