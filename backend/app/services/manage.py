@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from huggingface_hub import scan_cache_dir
+from huggingface_hub.errors import CacheNotFound
 
 from app.errors import NotFoundError
 
@@ -14,7 +15,10 @@ class ManagedModel:
 
 
 def list_managed_models(sort: str = "size", cache_dir: str | None = None) -> list[ManagedModel]:
-    cache_info = scan_cache_dir(cache_dir=cache_dir)
+    try:
+        cache_info = scan_cache_dir(cache_dir=cache_dir)
+    except CacheNotFound:
+        return []
     models = [
         ManagedModel(
             repo_id=repo.repo_id,
@@ -33,7 +37,10 @@ def list_managed_models(sort: str = "size", cache_dir: str | None = None) -> lis
 
 
 def delete_managed_model(repo_id: str, cache_dir: str | None = None) -> None:
-    cache_info = scan_cache_dir(cache_dir=cache_dir)
+    try:
+        cache_info = scan_cache_dir(cache_dir=cache_dir)
+    except CacheNotFound as e:
+        raise NotFoundError(f"model '{repo_id}' not found in cache") from e
     repo = next(
         (r for r in cache_info.repos if r.repo_id == repo_id and r.repo_type == "model"),
         None,

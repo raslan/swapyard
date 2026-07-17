@@ -27,9 +27,46 @@ def test_list_managed_models_returns_seeded_repo(seeded_cache: Path):
     assert models[0].nb_files == 1
 
 
-def test_list_managed_models_sort_by_name(seeded_cache: Path):
-    models = list_managed_models(sort="name", cache_dir=str(seeded_cache))
-    assert [m.repo_id for m in models] == sorted(m.repo_id for m in models)
+@pytest.fixture
+def seeded_cache_two_repos(seeded_cache: Path) -> Path:
+    """Add a second repo to the seeded cache whose name sorts before
+    hf-internal-testing/tiny-random-gpt2 but whose config.json (and thus
+    size_on_disk) is larger, so sort="name" and sort="size" diverge."""
+    snapshot_download(
+        repo_id="hf-internal-testing/tiny-random-bert",
+        cache_dir=str(seeded_cache),
+        allow_patterns=["config.json"],
+    )
+    return seeded_cache
+
+
+def test_list_managed_models_sort_by_name(seeded_cache_two_repos: Path):
+    models = list_managed_models(sort="name", cache_dir=str(seeded_cache_two_repos))
+    assert [m.repo_id for m in models] == [
+        "hf-internal-testing/tiny-random-bert",
+        "hf-internal-testing/tiny-random-gpt2",
+    ]
+
+
+def test_list_managed_models_sort_by_size(seeded_cache_two_repos: Path):
+    models = list_managed_models(sort="size", cache_dir=str(seeded_cache_two_repos))
+    sizes = [m.size_on_disk for m in models]
+    assert sizes == sorted(sizes, reverse=True)
+    assert [m.repo_id for m in models] != [
+        "hf-internal-testing/tiny-random-bert",
+        "hf-internal-testing/tiny-random-gpt2",
+    ]
+
+
+def test_list_managed_models_missing_cache_dir_returns_empty(tmp_path: Path):
+    missing = tmp_path / "does-not-exist"
+    assert list_managed_models(cache_dir=str(missing)) == []
+
+
+def test_delete_managed_model_missing_cache_dir_raises(tmp_path: Path):
+    missing = tmp_path / "does-not-exist"
+    with pytest.raises(NotFoundError):
+        delete_managed_model("any/repo", cache_dir=str(missing))
 
 
 def test_delete_managed_model_removes_repo(seeded_cache: Path):
