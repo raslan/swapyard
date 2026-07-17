@@ -1,0 +1,22 @@
+# AI assistant artifacts — never committed, local-only
+docs/superpowers/
+CLAUDE.md
+.claude/
+AGENTS.md
+.superpowers/
+
+# Python
+backend/.venv/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/.ruff_cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/playwright-report/
+frontend/test-results/
+
+# OS
+.DS_Store
