@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from huggingface_hub import HfApi, hf_hub_download
+from huggingface_hub.errors import HfHubHTTPError, RepositoryNotFoundError
 
-from app.errors import NotFoundError
+from app.errors import NotFoundError, UpstreamError
 
 GGUF_FILE_SUFFIX = ".gguf"
 ACCOMPANYING_SUFFIXES = (".json", ".txt", ".model", ".vocab")
@@ -65,8 +66,10 @@ def get_model_detail(repo_id: str) -> ModelDetail:
     api = HfApi()
     try:
         info = api.model_info(repo_id, files_metadata=True)
-    except Exception as exc:
+    except RepositoryNotFoundError as exc:
         raise NotFoundError(f"model '{repo_id}' not found") from exc
+    except HfHubHTTPError as exc:
+        raise UpstreamError(f"failed to reach Hugging Face: {exc}") from exc
 
     files = []
     for sibling in info.siblings or []:
