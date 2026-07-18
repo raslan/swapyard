@@ -5,7 +5,8 @@ import pytest
 from huggingface_hub.errors import HfHubHTTPError, RepositoryNotFoundError
 
 from app.errors import NotFoundError, UpstreamError
-from app.services.browse import _categorize_file, get_model_detail, search_models
+from app.services.browse import _categorize_file, _fetch_readme, get_model_detail, search_models
+from app.services.manage import list_managed_models
 
 
 def _http_error(exc_cls, status_code, message):
@@ -95,3 +96,99 @@ def test_get_model_detail_happy_path(mock_hf_api_cls, mock_fetch_readme):
     assert files_by_name["model.Q4_K_M.gguf"].size == 1000
     assert files_by_name["mmproj-model-f16.gguf"].category == "mmproj"
     assert files_by_name["tokenizer_config.json"].category == "other"
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_readme_success(mock_get):
+    mock_get.return_value = httpx.Response(
+        200,
+        text="# Model Card\n\nHello.",
+        request=httpx.Request("GET", "https://huggingface.co/org/model/resolve/main/README.md"),
+    )
+
+    readme = _fetch_readme("org/model")
+
+    assert readme == "# Model Card\n\nHello."
+    mock_get.assert_called_once_with(
+        "https://huggingface.co/org/model/resolve/main/README.md",
+        headers={},
+        follow_redirects=True,
+    )
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_readme_not_found_returns_empty_string(mock_get):
+    mock_get.return_value = httpx.Response(
+        404,
+        request=httpx.Request("GET", "https://huggingface.co/org/model/resolve/main/README.md"),
+    )
+
+    assert _fetch_readme("org/model") == ""
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_readme_other_http_error_returns_empty_string(mock_get):
+    mock_get.return_value = httpx.Response(
+        503,
+        request=httpx.Request("GET", "https://huggingface.co/org/model/resolve/main/README.md"),
+    )
+
+    assert _fetch_readme("org/model") == ""
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_readme_network_error_returns_empty_string(mock_get):
+    mock_get.side_effect = httpx.ConnectError("boom")
+
+    assert _fetch_readme("org/model") == ""
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_readme_sends_auth_header_when_token_set(mock_get, monkeypatch):
+    monkeypatch.setenv("HF_TOKEN", "secret-token")
+    mock_get.return_value = httpx.Response(
+        200,
+        text="content",
+        request=httpx.Request("GET", "https://huggingface.co/org/model/resolve/main/README.md"),
+    )
+
+    _fetch_readme("org/model")
+
+    mock_get.assert_called_once_with(
+        "https://huggingface.co/org/model/resolve/main/README.md",
+        headers={"Authorization": "Bearer secret-token"},
+        follow_redirects=True,
+    )
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_readme_omits_auth_header_when_no_token(mock_get, monkeypatch):
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    mock_get.return_value = httpx.Response(
+        200,
+        text="content",
+        request=httpx.Request("GET", "https://huggingface.co/org/model/resolve/main/README.md"),
+    )
+
+    _fetch_readme("org/model")
+
+    _, kwargs = mock_get.call_args
+    assert "Authorization" not in kwargs["headers"]
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_readme_has_no_cache_side_effect(mock_get, tmp_path, monkeypatch):
+    """Regression test for the double-card bug: previewing a model's README must
+    not make it show up on the Manage screen (which reads via scan_cache_dir)."""
+    monkeypatch.setenv("HF_HOME", str(tmp_path))
+    mock_get.return_value = httpx.Response(
+        200,
+        text="# Some real content",
+        request=httpx.Request("GET", "https://huggingface.co/org/model/resolve/main/README.md"),
+    )
+
+    readme = _fetch_readme("org/model")
+
+    assert readme == "# Some real content"
+    assert list(tmp_path.iterdir()) == []
+    assert list_managed_models(cache_dir=str(tmp_path)) == []

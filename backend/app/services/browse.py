@@ -1,7 +1,8 @@
+import os
 from dataclasses import dataclass
-from pathlib import Path
 
-from huggingface_hub import HfApi, hf_hub_download
+import httpx
+from huggingface_hub import HfApi
 from huggingface_hub.errors import HfHubHTTPError, RepositoryNotFoundError
 
 from app.errors import NotFoundError, UpstreamError
@@ -92,8 +93,31 @@ def get_model_detail(repo_id: str) -> ModelDetail:
 
 
 def _fetch_readme(repo_id: str) -> str:
+    """Fetch a repo's README via a raw HTTP GET rather than hf_hub_download.
+
+    hf_hub_download writes into the persistent HF cache dir that the Manage
+    screen scans (scan_cache_dir), so merely previewing a model would make it
+    look "downloaded". Fetching the raw file over HTTP has zero cache
+    footprint. Content is read from the response body only, never written to
+    disk.
+    """
+    url = f"https://huggingface.co/{repo_id}/resolve/main/README.md"
+    headers = {}
+    token = os.environ.get("HF_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
     try:
-        path = hf_hub_download(repo_id=repo_id, filename="README.md")
-        return Path(path).read_text(encoding="utf-8")
-    except Exception:
+        response = httpx.get(url, headers=headers, follow_redirects=True)
+    except httpx.HTTPError:
         return ""
+
+    if response.status_code == 404:
+        return ""
+
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError:
+        return ""
+
+    return response.text
