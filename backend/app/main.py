@@ -3,6 +3,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import Response
+from starlette.types import Scope
 
 from app.errors import register_error_handlers
 from app.routes.browse import router as browse_router
@@ -22,13 +24,17 @@ class SPAStaticFiles(StaticFiles):
     needing a separate catch-all route: because `Mount("/")` matches every
     path with a full match, any route registered *after* it in the app's
     router is unreachable, so the fallback has to live inside this app.
+
+    The fallback is skipped for `/api/*` paths so a genuinely unknown API
+    route still 404s instead of being masked by the SPA's index.html.
     """
 
-    async def get_response(self, path: str, scope):
+    async def get_response(self, path: str, scope: Scope) -> Response:
         try:
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:
-            if exc.status_code == 404:
+            is_api_path = path == "api" or path.startswith("api/")
+            if exc.status_code == 404 and not is_api_path:
                 return await super().get_response("index.html", scope)
             raise
 

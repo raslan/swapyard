@@ -69,3 +69,37 @@ def test_spa_static_files_does_not_shadow_api_routes(tmp_path):
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_spa_static_files_does_not_mask_non_404_errors(tmp_path):
+    """A non-404 error raised internally by StaticFiles (e.g. 405 for a
+    disallowed method) must propagate as-is, not be swallowed by the
+    index.html fallback that's only meant to handle unmatched GETs.
+    """
+    (tmp_path / "index.html").write_text("<html>SPA INDEX</html>")
+    assets_dir = tmp_path / "assets"
+    assets_dir.mkdir()
+    (assets_dir / "app.js").write_text("console.log('hi');")
+
+    app = _build_spa_app(tmp_path)
+    client = TestClient(app)
+
+    response = client.post("/assets/app.js")
+
+    assert response.status_code == 405
+    assert response.text != "<html>SPA INDEX</html>"
+
+
+def test_spa_static_files_returns_real_404_for_unknown_api_path(tmp_path):
+    """A request to a genuinely nonexistent /api/* route must 404 for real,
+    not fall back to the SPA's index.html with a 200.
+    """
+    (tmp_path / "index.html").write_text("<html>SPA INDEX</html>")
+
+    app = _build_spa_app(tmp_path)
+    client = TestClient(app)
+
+    response = client.get("/api/does-not-exist")
+
+    assert response.status_code == 404
+    assert response.text != "<html>SPA INDEX</html>"
