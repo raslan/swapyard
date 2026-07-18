@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 
 import { ModelCard } from "@/components/ModelCard";
@@ -48,9 +49,19 @@ export function BrowsePage() {
 
         {!loading && !error && results.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {results.map((model) => (
-              <ModelCard key={model.repoId} model={model} onClick={() => navigate(`/browse/${model.repoId}`)} />
-            ))}
+            <AnimatePresence>
+              {results.map((model) => (
+                <motion.div
+                  key={model.repoId}
+                  initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <ModelCard model={model} onClick={() => navigate(`/browse/${model.repoId}`)} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 
 import { ActiveDownloadRow, ManageRow } from "@/components/ManageRow";
@@ -52,12 +53,30 @@ export function ManagePage() {
         )}
 
         <div className="space-y-3 py-4">
-          {inProgress.map((d) => (
-            <ActiveDownloadRow key={d.id} download={d} onCancel={() => cancel(d.id)} />
-          ))}
-          {models.map((m) => (
-            <ManageRow key={m.repoId} model={m} onDelete={() => remove(m.repoId)} />
-          ))}
+          <AnimatePresence initial={false}>
+            {inProgress.map((d) => (
+              <motion.div
+                key={d.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <ActiveDownloadRow download={d} onCancel={() => cancel(d.id)} />
+              </motion.div>
+            ))}
+            {models.map((m) => (
+              <motion.div
+                key={m.repoId}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <ManageRow model={m} onDelete={() => remove(m.repoId)} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </div>
     </div>
