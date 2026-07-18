@@ -20,7 +20,7 @@ export function ModelCard({ model, onClick }: { model: ModelSummary; onClick: ()
           </h3>
           <p className="text-xs text-text-muted font-mono mt-1">{model.author}</p>
         </div>
-        <span className="flex items-center gap-1 text-xs font-mono text-text-muted flex-shrink-0">
+        <span className="flex items-center gap-1 text-xs font-mono text-text-muted shrink-0">
           <Download className="w-3 h-3" />
           {formatNumber(model.downloads)}
         </span>

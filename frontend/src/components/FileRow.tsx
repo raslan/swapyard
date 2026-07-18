@@ -24,7 +24,7 @@ export function FileRow({
   return (
     <div className="file-row flex items-center justify-between p-4">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-9 h-9 rounded-lg bg-abyss border border-surface/40 flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-abyss border border-surface/40 flex items-center justify-center shrink-0">
           <CategoryIcon className="w-4 h-4 text-text-muted" />
         </div>
         <div className="min-w-0">

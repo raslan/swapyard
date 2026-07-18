@@ -104,7 +104,7 @@ export function BrowseDetailPage() {
           <div className="space-y-2">
             {downloadError && (
               <p className="text-sm text-red-400 flex items-center gap-2" role="alert">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 {downloadError}
               </p>
             )}
