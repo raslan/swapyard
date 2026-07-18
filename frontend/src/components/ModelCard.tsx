@@ -10,6 +10,7 @@ export function ModelCard({ model, onClick }: { model: ModelSummary; onClick: ()
       onKeyDown={(e) => e.key === "Enter" && onClick()}
       className="model-card rounded-xl p-5 cursor-pointer"
     >
+      <div className="card-glow" />
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0 mr-3">
           <h3 className="font-display font-semibold text-base text-text-primary truncate" title={model.repoId}>

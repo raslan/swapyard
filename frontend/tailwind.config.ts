@@ -105,10 +105,20 @@ export default {
             transform: "translateX(0)",
           },
         },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        morph: {
+          "0%, 100%": { borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%" },
+          "50%": { borderRadius: "30% 60% 70% 40% / 50% 60% 30% 60%" },
+        },
       },
       animation: {
         "fade-in-up": "fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "slide-right": "slideRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        shimmer: "shimmer 2s linear infinite",
+        morph: "morph 8s ease-in-out infinite",
       },
       borderRadius: {
         lg: "var(--radius)",
