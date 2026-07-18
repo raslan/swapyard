@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -24,7 +24,7 @@ describe("ManagePage", () => {
     await waitFor(() => expect(screen.getByText(/no models downloaded/i)).toBeInTheDocument());
   });
 
-  it("lists downloaded models and deletes on click", async () => {
+  it("opens a confirmation dialog on delete click, without deleting immediately", async () => {
     vi.spyOn(api, "listManagedModels").mockResolvedValue([
       { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 2, lastModified: 1, ggufFiles: [] },
     ]);
@@ -41,7 +41,37 @@ describe("ManagePage", () => {
     await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /delete/i }));
 
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText(/delete this model/i)).toBeInTheDocument();
+    expect(deleteSpy).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole("button", { name: /^delete$/i }));
+
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith("org/model"));
+  });
+
+  it("does not delete when the confirmation dialog is cancelled", async () => {
+    vi.spyOn(api, "listManagedModels").mockResolvedValue([
+      { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 2, lastModified: 1, ggufFiles: [] },
+    ]);
+    vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
+    const deleteSpy = vi.spyOn(api, "deleteManagedModel").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ManagePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: /cancel/i }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(deleteSpy).not.toHaveBeenCalled();
   });
 
   it("renders a quant badge for each downloaded gguf file", async () => {

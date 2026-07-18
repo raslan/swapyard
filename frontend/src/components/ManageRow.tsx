@@ -1,3 +1,14 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatQuantLabel, formatSize } from "@/lib/format";
@@ -14,9 +25,34 @@ export function ManageRow({ model, onDelete }: { model: ManagedModel; onDelete: 
             {formatSize(model.sizeOnDisk)} · {model.nbFiles} files
           </p>
         </div>
-        <Button variant="ghost" size="sm" className="text-danger" onClick={onDelete}>
-          Delete
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-danger">
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this model?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently removes the downloaded files for{" "}
+                <span className="font-mono">{model.repoId}</span> from disk. If this model is
+                currently loaded by another process (e.g. llama-swap), that process keeps running
+                fine off its already-open file handle, but the disk space won't be reclaimed until
+                it closes or restarts.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-white hover:bg-destructive/90"
+                onClick={onDelete}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       {model.ggufFiles.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3">
