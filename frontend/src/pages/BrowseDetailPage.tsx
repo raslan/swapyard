@@ -1,6 +1,8 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 
 import { FileRow } from "@/components/FileRow";
@@ -52,7 +54,19 @@ export function BrowseDetailPage() {
       <div className="flex-1 overflow-y-auto px-10 py-6">
         {tab === "overview" && (
           <div className="markdown-body max-w-3xl">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{detail.readme}</ReactMarkdown>
+            {/*
+              HF model card READMEs routinely embed raw HTML (centered `<div>` wrappers, badge
+              `<img>` tags, custom layout) that remark-gfm does not render — rehype-raw parses
+              that raw HTML into the tree. Since README content is untrusted third-party input,
+              rehype-raw MUST be paired with rehype-sanitize (run after it, so it cleans the
+              parsed tree) to strip dangerous content like <script> or onerror= handlers. The
+              default sanitize schema (GitHub-flavored-markdown-compatible) already permits what
+              real model cards need — div/img/a tags, align/width/height/alt/src/href — so no
+              custom schema is used here; see BrowseDetailPage.test.tsx for the pinned behavior.
+            */}
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSanitize]}>
+              {detail.readme}
+            </ReactMarkdown>
           </div>
         )}
         {tab === "files" && (
