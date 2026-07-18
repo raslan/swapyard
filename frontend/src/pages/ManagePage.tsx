@@ -1,3 +1,4 @@
+import { ArrowRight, ArrowUpDown, HardDrive } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -48,6 +49,7 @@ export function ManagePage() {
             onClick={() => setSort("name")}
             className={sort === "name" ? "bg-surface/30" : ""}
           >
+            <ArrowUpDown className="w-3.5 h-3.5" />
             Name
           </Button>
           <Button
@@ -55,6 +57,7 @@ export function ManagePage() {
             onClick={() => setSort("size")}
             className={sort === "size" ? "bg-surface/30" : ""}
           >
+            <ArrowUpDown className="w-3.5 h-3.5" />
             Size
           </Button>
         </div>
@@ -63,13 +66,19 @@ export function ManagePage() {
       <div className="px-10 flex-1 overflow-y-auto">
         {isEmpty && (
           <div className="text-center py-24">
+            <div className="w-20 h-20 rounded-2xl bg-dark border border-edge flex items-center justify-center mx-auto mb-5">
+              <HardDrive className="w-8 h-8 text-text-muted" />
+            </div>
             <h3 className="font-display text-xl font-semibold text-text-primary mb-2">
               No models downloaded
             </h3>
             <p className="text-sm text-text-secondary mb-6">
               Browse the catalog and download a model to get started.
             </p>
-            <Button onClick={() => navigate("/browse")}>Browse Models</Button>
+            <Button onClick={() => navigate("/browse")} className="gap-2">
+              Browse Models
+              <ArrowRight className="w-4 h-4" />
+            </Button>
           </div>
         )}
 

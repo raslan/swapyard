@@ -1,3 +1,5 @@
+import { Trash2, X } from "lucide-react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +30,7 @@ export function ManageRow({ model, onDelete }: { model: ManagedModel; onDelete: 
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="ghost" size="sm" className="text-danger">
+              <Trash2 className="w-4 h-4" />
               Delete
             </Button>
           </AlertDialogTrigger>
@@ -83,6 +86,7 @@ export function ActiveDownloadRow({
           <p className="text-xs text-text-muted font-mono">{download.repoId}</p>
         </div>
         <Button variant="ghost" size="sm" onClick={onCancel}>
+          <X className="w-4 h-4" />
           Cancel
         </Button>
       </div>

@@ -13,6 +13,7 @@ function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
+        <Route path="/browse" element={<div>Browse Screen</div>} />
         <Route path="/browse/*" element={<BrowseDetailPage />} />
         <Route path="/manage" element={<div>Manage Screen</div>} />
       </Routes>
@@ -108,5 +109,25 @@ describe("BrowseDetailPage", () => {
 
     await waitFor(() => expect(startSpy).toHaveBeenCalledWith("org/model", "model.Q4.gguf"));
     await waitFor(() => expect(screen.getByText("Manage Screen")).toBeInTheDocument());
+  });
+
+  it("navigates back to Browse when the back button is clicked", async () => {
+    vi.spyOn(api, "getModelDetail").mockResolvedValue({
+      repoId: "org/model",
+      author: "org",
+      downloads: 1,
+      likes: 0,
+      readme: "# Hello world",
+      files: [{ name: "model.Q4.gguf", size: 1000, category: "gguf" }],
+    });
+    vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
+
+    const user = userEvent.setup();
+    renderAt("/browse/org/model");
+
+    await waitFor(() => expect(screen.getByText("Hello world")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: /back to browse/i }));
+
+    await waitFor(() => expect(screen.getByText("Browse Screen")).toBeInTheDocument());
   });
 });

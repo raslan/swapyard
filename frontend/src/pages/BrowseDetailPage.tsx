@@ -1,3 +1,4 @@
+import { AlertCircle, ArrowLeft, FileText, List, Loader2 } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -6,6 +7,7 @@ import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 
 import { FileRow } from "@/components/FileRow";
+import { Button } from "@/components/ui/button";
 import { useDownloads } from "@/hooks/useDownloads";
 import { useModelDetail } from "@/hooks/useModelDetail";
 import { formatNumber } from "@/lib/format";
@@ -24,13 +26,46 @@ export function BrowseDetailPage() {
   const navigate = useNavigate();
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  if (loading) return <div className="p-10 text-text-muted">Loading...</div>;
-  if (error || !detail) return <div className="p-10 text-text-muted">Failed to load model.</div>;
+  const backButton = (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="-ml-2 gap-2 text-text-muted hover:text-text-primary"
+      onClick={() => navigate("/browse")}
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Back to Browse
+    </Button>
+  );
+
+  if (loading)
+    return (
+      <div className="p-10">
+        {backButton}
+        <div className="flex items-center gap-2 mt-4 text-text-muted">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading...
+        </div>
+      </div>
+    );
+  if (error || !detail)
+    return (
+      <div className="p-10">
+        {backButton}
+        <div className="flex items-center gap-2 mt-4 text-text-muted">
+          <AlertCircle className="w-4 h-4" />
+          Failed to load model.
+        </div>
+      </div>
+    );
 
   return (
     <div className="flex flex-col h-full">
       <div className="px-10 pt-6">
-        <h1 className="font-display text-2xl font-bold text-text-primary">{detail.repoId}</h1>
+        {backButton}
+        <h1 className="font-display text-2xl font-bold text-text-primary mt-3">
+          {detail.repoId}
+        </h1>
         <p className="text-sm text-text-muted font-mono">
           {detail.author} · {formatNumber(detail.downloads)} downloads · {detail.likes} likes
         </p>
@@ -38,15 +73,17 @@ export function BrowseDetailPage() {
 
       <div className="px-10 border-b border-surface/40 flex gap-8 mt-4">
         <button
-          className={`tab-btn px-1 py-3.5 text-sm ${tab === "overview" ? "active" : ""}`}
+          className={`tab-btn px-1 py-3.5 text-sm inline-flex items-center gap-1.5 ${tab === "overview" ? "active" : ""}`}
           onClick={() => setSearchParams({ tab: "overview" })}
         >
+          <FileText className="w-3.5 h-3.5" />
           Overview
         </button>
         <button
-          className={`tab-btn px-1 py-3.5 text-sm ${tab === "files" ? "active" : ""}`}
+          className={`tab-btn px-1 py-3.5 text-sm inline-flex items-center gap-1.5 ${tab === "files" ? "active" : ""}`}
           onClick={() => setSearchParams({ tab: "files" })}
         >
+          <List className="w-3.5 h-3.5" />
           Files
         </button>
       </div>
@@ -72,7 +109,8 @@ export function BrowseDetailPage() {
         {tab === "files" && (
           <div className="space-y-2">
             {downloadError && (
-              <p className="text-sm text-red-400" role="alert">
+              <p className="text-sm text-red-400 flex items-center gap-2" role="alert">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {downloadError}
               </p>
             )}
