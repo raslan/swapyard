@@ -12,6 +12,18 @@ class ManagedModel:
     size_on_disk: int
     nb_files: int
     last_modified: float
+    gguf_files: list[str]
+
+
+def _gguf_files(repo) -> list[str]:  # noqa: ANN001 - CachedRepoInfo has no public type alias
+    """Union+dedupe .gguf filenames across all revisions of a cached repo, sorted."""
+    names = {
+        file.file_name
+        for revision in repo.revisions
+        for file in revision.files
+        if file.file_name.endswith(".gguf")
+    }
+    return sorted(names)
 
 
 def list_managed_models(sort: str = "size", cache_dir: str | None = None) -> list[ManagedModel]:
@@ -25,6 +37,7 @@ def list_managed_models(sort: str = "size", cache_dir: str | None = None) -> lis
             size_on_disk=repo.size_on_disk,
             nb_files=repo.nb_files,
             last_modified=repo.last_modified,
+            gguf_files=_gguf_files(repo),
         )
         for repo in cache_info.repos
         if repo.repo_type == "model"

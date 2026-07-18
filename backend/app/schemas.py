@@ -6,6 +6,7 @@ class ManagedModelResponse(BaseModel):
     size_on_disk: int
     nb_files: int
     last_modified: float
+    gguf_files: list[str]
 
 
 class ModelSummaryResponse(BaseModel):
