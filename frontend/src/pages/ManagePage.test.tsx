@@ -26,7 +26,7 @@ describe("ManagePage", () => {
 
   it("lists downloaded models and deletes on click", async () => {
     vi.spyOn(api, "listManagedModels").mockResolvedValue([
-      { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 2, lastModified: 1 },
+      { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 2, lastModified: 1, ggufFiles: [] },
     ]);
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     const deleteSpy = vi.spyOn(api, "deleteManagedModel").mockResolvedValue(undefined);
@@ -42,6 +42,29 @@ describe("ManagePage", () => {
     await user.click(screen.getByRole("button", { name: /delete/i }));
 
     await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith("org/model"));
+  });
+
+  it("renders a quant badge for each downloaded gguf file", async () => {
+    vi.spyOn(api, "listManagedModels").mockResolvedValue([
+      {
+        repoId: "org/model",
+        sizeOnDisk: 1024,
+        nbFiles: 2,
+        lastModified: 1,
+        ggufFiles: ["org-model.Q4_K_M.gguf", "org-model.Q8_0.gguf"],
+      },
+    ]);
+    vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <ManagePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
+    expect(screen.getByText("Q4_K_M")).toBeInTheDocument();
+    expect(screen.getByText("Q8_0")).toBeInTheDocument();
   });
 
   it("shows an in-progress download with a cancel button", async () => {
@@ -73,7 +96,9 @@ describe("ManagePage", () => {
     const listModelsSpy = vi
       .spyOn(api, "listManagedModels")
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ repoId: "org/model", sizeOnDisk: 1024, nbFiles: 1, lastModified: 1 }]);
+      .mockResolvedValueOnce([
+        { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 1, lastModified: 1, ggufFiles: [] },
+      ]);
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([
       {
         id: "d1",

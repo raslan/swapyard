@@ -43,13 +43,20 @@ export async function getModelDetail(repoId: string): Promise<ModelDetail> {
 
 export async function listManagedModels(sort: "size" | "name"): Promise<ManagedModel[]> {
   const raw = await request<
-    { repo_id: string; size_on_disk: number; nb_files: number; last_modified: number }[]
+    {
+      repo_id: string;
+      size_on_disk: number;
+      nb_files: number;
+      last_modified: number;
+      gguf_files: string[];
+    }[]
   >(`/api/manage/models?sort=${sort}`);
   return raw.map((m) => ({
     repoId: m.repo_id,
     sizeOnDisk: m.size_on_disk,
     nbFiles: m.nb_files,
     lastModified: m.last_modified,
+    ggufFiles: m.gguf_files,
   }));
 }
 

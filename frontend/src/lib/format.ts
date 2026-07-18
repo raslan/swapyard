@@ -16,3 +16,9 @@ export function formatSpeed(bytesPerSec: number): string {
   if (!bytesPerSec || bytesPerSec < 1024) return "0 MB/s";
   return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`;
 }
+
+export function formatQuantLabel(filename: string): string {
+  const stem = filename.replace(/\.gguf$/, "");
+  const lastDot = stem.lastIndexOf(".");
+  return lastDot === -1 ? stem : stem.slice(lastDot + 1);
+}

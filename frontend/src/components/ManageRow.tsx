@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { formatSize } from "@/lib/format";
+import { formatQuantLabel, formatSize } from "@/lib/format";
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel } from "@/types/model";
 
@@ -18,6 +18,15 @@ export function ManageRow({ model, onDelete }: { model: ManagedModel; onDelete: 
           Delete
         </Button>
       </div>
+      {model.ggufFiles.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {model.ggufFiles.map((file) => (
+            <span key={file} className="badge badge-quant">
+              {formatQuantLabel(file)}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

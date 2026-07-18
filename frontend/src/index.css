@@ -241,6 +241,11 @@ body {
   color: #686880;
   border: 1px solid rgba(88,88,112,0.15);
 }
+.badge-quant {
+  background: rgba(34,211,238,0.1);
+  color: #22d3ee;
+  border: 1px solid rgba(34,211,238,0.15);
+}
 
 /* ===== File Row ===== */
 .file-row {

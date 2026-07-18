@@ -10,7 +10,7 @@ afterEach(() => vi.restoreAllMocks());
 describe("useManagedModels", () => {
   it("loads models sorted by size by default", async () => {
     const spy = vi.spyOn(api, "listManagedModels").mockResolvedValue([
-      { repoId: "org/model", sizeOnDisk: 100, nbFiles: 1, lastModified: 1 },
+      { repoId: "org/model", sizeOnDisk: 100, nbFiles: 1, lastModified: 1, ggufFiles: [] },
     ]);
 
     const { result } = renderHook(() => useManagedModels());

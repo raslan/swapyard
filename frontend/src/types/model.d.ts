@@ -26,4 +26,5 @@ export interface ManagedModel {
   sizeOnDisk: number;
   nbFiles: number;
   lastModified: number;
+  ggufFiles: string[];
 }

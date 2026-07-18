@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatNumber, formatSize, formatSpeed } from "./format";
+import { formatNumber, formatQuantLabel, formatSize, formatSpeed } from "./format";
 
 describe("formatSize", () => {
   it("formats bytes", () => {
@@ -24,5 +24,23 @@ describe("formatSpeed", () => {
   it("formats bytes per second as MB/s", () => {
     expect(formatSpeed(0)).toBe("0 MB/s");
     expect(formatSpeed(2 * 1024 * 1024)).toBe("2.0 MB/s");
+  });
+});
+
+describe("formatQuantLabel", () => {
+  it("extracts the quant designator after the last dot before .gguf", () => {
+    expect(formatQuantLabel("Meta-Llama-3-8B-Instruct.Q4_K_M.gguf")).toBe("Q4_K_M");
+  });
+
+  it("falls back to the full stem when there is no dot", () => {
+    expect(formatQuantLabel("model.gguf")).toBe("model");
+  });
+
+  it("takes only the last segment when there are multiple dots", () => {
+    expect(formatQuantLabel("org.repo.name.v1.IQ4_XS.gguf")).toBe("IQ4_XS");
+  });
+
+  it("returns an empty string for empty input", () => {
+    expect(formatQuantLabel("")).toBe("");
   });
 });
