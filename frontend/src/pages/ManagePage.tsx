@@ -1,15 +1,36 @@
 import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ActiveDownloadRow, ManageRow } from "@/components/ManageRow";
 import { Button } from "@/components/ui/button";
 import { useDownloads } from "@/hooks/useDownloads";
 import { useManagedModels } from "@/hooks/useManagedModels";
+import type { DownloadState } from "@/types/download";
 
 export function ManagePage() {
-  const { models, sort, setSort, remove } = useManagedModels();
+  const { models, sort, setSort, remove, refetch } = useManagedModels();
   const { downloads, cancel } = useDownloads();
   const navigate = useNavigate();
+
+  const prevStatuses = useRef<Map<string, DownloadState["status"]>>(new Map());
+
+  // A download completing doesn't, by itself, change the managed-models list — that list
+  // only comes from listManagedModels(). Detect the "downloading" -> "complete" transition
+  // here and refetch so the newly-finished model appears without a manual reload.
+  useEffect(() => {
+    const prev = prevStatuses.current;
+    const justCompleted = downloads.some(
+      (d) => d.status === "complete" && prev.get(d.id) !== "complete",
+    );
+    prevStatuses.current = new Map(downloads.map((d) => [d.id, d.status]));
+
+    if (justCompleted) {
+      queueMicrotask(() => {
+        refetch(sort);
+      });
+    }
+  }, [downloads, sort, refetch]);
 
   const inProgress = downloads.filter((d) => d.status === "downloading");
   const isEmpty = models.length === 0 && inProgress.length === 0;

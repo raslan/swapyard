@@ -1,3 +1,4 @@
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import remarkGfm from "remark-gfm";
@@ -19,6 +20,7 @@ export function BrowseDetailPage() {
   const { detail, loading, error } = useModelDetail(repoId);
   const { start } = useDownloads();
   const navigate = useNavigate();
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   if (loading) return <div className="p-10 text-text-muted">Loading...</div>;
   if (error || !detail) return <div className="p-10 text-text-muted">Failed to load model.</div>;
@@ -55,13 +57,24 @@ export function BrowseDetailPage() {
         )}
         {tab === "files" && (
           <div className="space-y-2">
+            {downloadError && (
+              <p className="text-sm text-red-400" role="alert">
+                {downloadError}
+              </p>
+            )}
             {detail.files.map((file) => (
               <FileRow
                 key={file.name}
                 file={file}
                 onDownload={async () => {
-                  await start(repoId, file.name);
-                  navigate("/manage");
+                  try {
+                    setDownloadError(null);
+                    await start(repoId, file.name);
+                    navigate("/manage");
+                  } catch (err) {
+                    console.error("Failed to start download", err);
+                    setDownloadError("Failed to start download. Please try again.");
+                  }
                 }}
               />
             ))}

@@ -29,5 +29,5 @@ export function useManagedModels() {
     [refetch, sort],
   );
 
-  return { models, loading, sort, setSort, remove };
+  return { models, loading, sort, setSort, remove, refetch };
 }
