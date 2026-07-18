@@ -1,3 +1,4 @@
+import { Search, SearchX, WifiOff } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 
@@ -20,12 +21,15 @@ export function BrowsePage() {
       </div>
 
       <div className="px-10 pb-7">
-        <Input
-          placeholder="Search models..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="max-w-lg search-input"
-        />
+        <div className="relative max-w-lg">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+          <Input
+            placeholder="Search models..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="search-input pl-10"
+          />
+        </div>
       </div>
 
       <div className="px-10 flex-1 overflow-y-auto pb-8">
@@ -38,13 +42,17 @@ export function BrowsePage() {
         )}
 
         {!loading && error && (
-          <p className="text-sm text-text-secondary py-24 text-center">
-            Could not reach Hugging Face. Please try again later.
-          </p>
+          <div className="flex flex-col items-center gap-3 py-24 text-center">
+            <WifiOff className="w-8 h-8 text-text-muted" />
+            <p className="text-sm text-text-secondary">Could not reach Hugging Face. Please try again later.</p>
+          </div>
         )}
 
         {!loading && !error && results.length === 0 && (
-          <p className="text-sm text-text-secondary py-24 text-center">No models found.</p>
+          <div className="flex flex-col items-center gap-3 py-24 text-center">
+            <SearchX className="w-8 h-8 text-text-muted" />
+            <p className="text-sm text-text-secondary">No models found.</p>
+          </div>
         )}
 
         {!loading && !error && results.length > 0 && (

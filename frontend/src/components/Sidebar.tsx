@@ -1,3 +1,4 @@
+import { Anchor, Compass, HardDrive, PanelLeftClose } from "lucide-react";
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -13,10 +14,17 @@ export function Sidebar() {
         <button
           data-testid="sidebar-toggle"
           onClick={() => setCollapsed((c) => !c)}
-          className="flex items-center gap-3"
+          className="flex items-center gap-3 w-full"
         >
-          <div className="w-8 h-8 rounded-lg bg-white flex-shrink-0" />
-          {!collapsed && <span className="font-display font-bold text-lg text-text-primary">Swapyard</span>}
+          <div className="w-8 h-8 rounded-lg bg-white flex-shrink-0 flex items-center justify-center">
+            <Anchor className="w-4 h-4 text-abyss" />
+          </div>
+          {!collapsed && (
+            <>
+              <span className="font-display font-bold text-lg text-text-primary flex-1 text-left">Swapyard</span>
+              <PanelLeftClose data-testid="sidebar-collapse-icon" className="w-4 h-4 text-text-muted flex-shrink-0" />
+            </>
+          )}
         </button>
       </div>
 
@@ -27,6 +35,7 @@ export function Sidebar() {
             `sidebar-item flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium ${isActive ? "active text-text-primary" : "text-text-muted"}`
           }
         >
+          <Compass className="w-4 h-4 flex-shrink-0" />
           {!collapsed && <span>Browse</span>}
         </NavLink>
         <NavLink
@@ -35,6 +44,7 @@ export function Sidebar() {
             `sidebar-item flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium ${isActive ? "active text-text-primary" : "text-text-muted"}`
           }
         >
+          <HardDrive className="w-4 h-4 flex-shrink-0" />
           {!collapsed && <span>Manage</span>}
         </NavLink>
       </nav>

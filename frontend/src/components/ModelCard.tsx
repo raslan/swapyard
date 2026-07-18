@@ -1,3 +1,5 @@
+import { Download } from "lucide-react";
+
 import { formatNumber } from "@/lib/format";
 import type { ModelSummary } from "@/types/model";
 
@@ -18,7 +20,10 @@ export function ModelCard({ model, onClick }: { model: ModelSummary; onClick: ()
           </h3>
           <p className="text-xs text-text-muted font-mono mt-1">{model.author}</p>
         </div>
-        <span className="text-xs font-mono text-text-muted">{formatNumber(model.downloads)}</span>
+        <span className="flex items-center gap-1 text-xs font-mono text-text-muted flex-shrink-0">
+          <Download className="w-3 h-3" />
+          {formatNumber(model.downloads)}
+        </span>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {model.tags.slice(0, 3).map((tag) => (
