@@ -10,6 +10,7 @@ export interface ModelFile {
   name: string;
   size: number;
   category: "gguf" | "mmproj" | "other";
+  isXet: boolean;
 }
 
 export interface ModelDetail {

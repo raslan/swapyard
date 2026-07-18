@@ -5,7 +5,13 @@ import pytest
 from huggingface_hub.errors import HfHubHTTPError, RepositoryNotFoundError
 
 from app.errors import NotFoundError, UpstreamError
-from app.services.browse import _categorize_file, _fetch_readme, get_model_detail, search_models
+from app.services.browse import (
+    _categorize_file,
+    _fetch_readme,
+    _fetch_xet_filenames,
+    get_model_detail,
+    search_models,
+)
 from app.services.manage import list_managed_models
 
 
@@ -59,9 +65,10 @@ def test_get_model_detail_upstream_error_on_other_http_failure(mock_hf_api_cls):
         get_model_detail("some/repo")
 
 
+@patch("app.services.browse._fetch_xet_filenames")
 @patch("app.services.browse._fetch_readme")
 @patch("app.services.browse.HfApi")
-def test_get_model_detail_happy_path(mock_hf_api_cls, mock_fetch_readme):
+def test_get_model_detail_happy_path(mock_hf_api_cls, mock_fetch_readme, mock_fetch_xet):
     mock_api = MagicMock()
     mock_hf_api_cls.return_value = mock_api
 
@@ -80,6 +87,7 @@ def test_get_model_detail_happy_path(mock_hf_api_cls, mock_fetch_readme):
     )
     mock_api.model_info.return_value = mock_info
     mock_fetch_readme.return_value = "# Model Card\n\nSome readme content."
+    mock_fetch_xet.return_value = {"model.Q4_K_M.gguf"}
 
     detail = get_model_detail("org/model")
 
@@ -94,8 +102,36 @@ def test_get_model_detail_happy_path(mock_hf_api_cls, mock_fetch_readme):
     assert "model.safetensors" not in files_by_name
     assert files_by_name["model.Q4_K_M.gguf"].category == "gguf"
     assert files_by_name["model.Q4_K_M.gguf"].size == 1000
+    assert files_by_name["model.Q4_K_M.gguf"].is_xet is True
     assert files_by_name["mmproj-model-f16.gguf"].category == "mmproj"
+    assert files_by_name["mmproj-model-f16.gguf"].is_xet is False
     assert files_by_name["tokenizer_config.json"].category == "other"
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_xet_filenames_reads_xethash_field(mock_get):
+    mock_get.return_value = httpx.Response(
+        200,
+        json=[
+            {"path": "model.gguf", "xetHash": "abc123"},
+            {"path": "README.md"},
+        ],
+        request=httpx.Request("GET", "https://huggingface.co/api/models/org/model/tree/main"),
+    )
+
+    result = _fetch_xet_filenames("org/model")
+
+    assert result == {"model.gguf"}
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_xet_filenames_degrades_to_empty_set_on_error(mock_get):
+    mock_get.return_value = httpx.Response(
+        404,
+        request=httpx.Request("GET", "https://huggingface.co/api/models/org/model/tree/main"),
+    )
+
+    assert _fetch_xet_filenames("org/model") == set()
 
 
 @patch("app.services.browse.httpx.get")
@@ -114,6 +150,19 @@ def test_fetch_readme_success(mock_get):
         headers={},
         follow_redirects=True,
     )
+
+
+@patch("app.services.browse.httpx.get")
+def test_fetch_readme_strips_yaml_frontmatter(mock_get):
+    mock_get.return_value = httpx.Response(
+        200,
+        text="---\nlicense: apache-2.0\ntags:\n- gguf\n---\n# Model Card\n\nHello.",
+        request=httpx.Request("GET", "https://huggingface.co/org/model/resolve/main/README.md"),
+    )
+
+    readme = _fetch_readme("org/model")
+
+    assert readme == "# Model Card\n\nHello."
 
 
 @patch("app.services.browse.httpx.get")

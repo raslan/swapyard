@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatNumber, formatQuantLabel, formatSize, formatSpeed } from "./format";
+import { formatEta, formatNumber, formatQuantLabel, formatSize, formatSpeed } from "./format";
 
 describe("formatSize", () => {
   it("formats bytes", () => {
@@ -24,6 +24,19 @@ describe("formatSpeed", () => {
   it("formats bytes per second as MB/s", () => {
     expect(formatSpeed(0)).toBe("0 MB/s");
     expect(formatSpeed(2 * 1024 * 1024)).toBe("2.0 MB/s");
+  });
+});
+
+describe("formatEta", () => {
+  it("formats seconds, minutes, and hours remaining", () => {
+    expect(formatEta(100, 10)).toBe("10s left");
+    expect(formatEta(600, 10)).toBe("1m 0s left");
+    expect(formatEta(3660, 1)).toBe("1h 1m left");
+  });
+
+  it("returns empty string when rate or remaining bytes is zero", () => {
+    expect(formatEta(100, 0)).toBe("");
+    expect(formatEta(0, 10)).toBe("");
   });
 });
 

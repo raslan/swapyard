@@ -1,14 +1,12 @@
 import { AlertCircle, ArrowLeft, FileText, List, Loader2 } from "lucide-react";
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import rehypeRaw from "rehype-raw";
-import rehypeSanitize from "rehype-sanitize";
-import remarkGfm from "remark-gfm";
 
 import { FileRow } from "@/components/FileRow";
+import { ReadmeFrame } from "@/components/ReadmeFrame";
 import { Button } from "@/components/ui/button";
 import { useDownloads } from "@/hooks/useDownloads";
+import { useManagedModels } from "@/hooks/useManagedModels";
 import { useModelDetail } from "@/hooks/useModelDetail";
 import { formatNumber } from "@/lib/format";
 
@@ -22,9 +20,17 @@ export function BrowseDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") === "files" ? "files" : "overview";
   const { detail, loading, error } = useModelDetail(repoId);
-  const { start } = useDownloads();
+  const { start, downloads } = useDownloads();
+  const { models: managedModels } = useManagedModels();
   const navigate = useNavigate();
   const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const downloadedFiles = new Set(
+    managedModels.find((m) => m.repoId === repoId)?.ggufFiles ?? [],
+  );
+  const downloadingFiles = new Set(
+    downloads.filter((d) => d.repoId === repoId && d.status === "downloading").map((d) => d.filename),
+  );
 
   const backButton = (
     <Button
@@ -90,20 +96,8 @@ export function BrowseDetailPage() {
 
       <div className="flex-1 overflow-y-auto px-10 py-6">
         {tab === "overview" && (
-          <div className="markdown-body max-w-3xl">
-            {/*
-              HF model card READMEs routinely embed raw HTML (centered `<div>` wrappers, badge
-              `<img>` tags, custom layout) that remark-gfm does not render — rehype-raw parses
-              that raw HTML into the tree. Since README content is untrusted third-party input,
-              rehype-raw MUST be paired with rehype-sanitize (run after it, so it cleans the
-              parsed tree) to strip dangerous content like <script> or onerror= handlers. The
-              default sanitize schema (GitHub-flavored-markdown-compatible) already permits what
-              real model cards need — div/img/a tags, align/width/height/alt/src/href — so no
-              custom schema is used here; see BrowseDetailPage.test.tsx for the pinned behavior.
-            */}
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSanitize]}>
-              {detail.readme}
-            </ReactMarkdown>
+          <div className="max-w-3xl">
+            <ReadmeFrame markdown={detail.readme} />
           </div>
         )}
         {tab === "files" && (
@@ -118,10 +112,17 @@ export function BrowseDetailPage() {
               <FileRow
                 key={file.name}
                 file={file}
+                status={
+                  downloadedFiles.has(file.name)
+                    ? "downloaded"
+                    : downloadingFiles.has(file.name)
+                      ? "downloading"
+                      : "none"
+                }
                 onDownload={async () => {
                   try {
                     setDownloadError(null);
-                    await start(repoId, file.name);
+                    await start(repoId, file.name, file.isXet);
                     navigate("/manage");
                   } catch (err) {
                     console.error("Failed to start download", err);

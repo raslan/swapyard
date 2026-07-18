@@ -13,6 +13,8 @@ class DownloadState:
     filename: str
     total: int = 0
     downloaded: int = 0
+    rate: float = 0.0
+    is_xet: bool = False
     status: str = "downloading"
     error: str | None = None
     task: asyncio.Task | None = field(default=None, repr=False)
@@ -32,14 +34,17 @@ def _build_progress_tqdm(state: DownloadState, loop: asyncio.AbstractEventLoop) 
         def update(self, n=1):
             result = super().update(n)
             state.downloaded = self.n
+            # tqdm's own smoothed (EMA) bytes/sec rate - avoids hand-rolling a second
+            # rate calculation on top of the one it already computes internally.
+            state.rate = self.format_dict.get("rate") or 0.0
             loop.call_soon_threadsafe(state._event.set)
             return result
 
     return ProgressTqdm
 
 
-async def start_download(repo_id: str, filename: str) -> DownloadState:
-    state = DownloadState(id=str(uuid4()), repo_id=repo_id, filename=filename)
+async def start_download(repo_id: str, filename: str, is_xet: bool = False) -> DownloadState:
+    state = DownloadState(id=str(uuid4()), repo_id=repo_id, filename=filename, is_xet=is_xet)
     loop = asyncio.get_running_loop()
 
     def _run() -> None:

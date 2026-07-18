@@ -29,7 +29,7 @@ export async function getModelDetail(repoId: string): Promise<ModelDetail> {
     downloads: number;
     likes: number;
     readme: string;
-    files: { name: string; size: number; category: "gguf" | "mmproj" | "other" }[];
+    files: { name: string; size: number; category: "gguf" | "mmproj" | "other"; is_xet: boolean }[];
   }>(`/api/browse/models/${repoId}`);
   return {
     repoId: raw.repo_id,
@@ -37,7 +37,12 @@ export async function getModelDetail(repoId: string): Promise<ModelDetail> {
     downloads: raw.downloads,
     likes: raw.likes,
     readme: raw.readme,
-    files: raw.files,
+    files: raw.files.map((f) => ({
+      name: f.name,
+      size: f.size,
+      category: f.category,
+      isXet: f.is_xet,
+    })),
   };
 }
 
@@ -64,11 +69,15 @@ export async function deleteManagedModel(repoId: string): Promise<void> {
   await request<void>(`/api/manage/models/${repoId}`, { method: "DELETE" });
 }
 
-export async function startDownload(repoId: string, filename: string): Promise<{ id: string }> {
+export async function startDownload(
+  repoId: string,
+  filename: string,
+  isXet = false,
+): Promise<{ id: string }> {
   return request<{ id: string }>("/api/downloads", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ repo_id: repoId, filename }),
+    body: JSON.stringify({ repo_id: repoId, filename, is_xet: isXet }),
   });
 }
 
@@ -78,6 +87,8 @@ function toDownloadState(raw: {
   filename: string;
   total: number;
   downloaded: number;
+  rate: number;
+  is_xet: boolean;
   status: DownloadState["status"];
   error: string | null;
 }): DownloadState {
@@ -85,8 +96,10 @@ function toDownloadState(raw: {
     id: raw.id,
     repoId: raw.repo_id,
     filename: raw.filename,
+    isXet: raw.is_xet,
     total: raw.total,
     downloaded: raw.downloaded,
+    rate: raw.rate,
     status: raw.status,
     error: raw.error,
   };

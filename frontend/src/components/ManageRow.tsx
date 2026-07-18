@@ -1,4 +1,4 @@
-import { Trash2, X } from "lucide-react";
+import { Trash2, X, Zap } from "lucide-react";
 
 import {
   AlertDialog,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { formatQuantLabel, formatSize } from "@/lib/format";
+import { formatEta, formatQuantLabel, formatSize, formatSpeed } from "@/lib/format";
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel } from "@/types/model";
 
@@ -78,12 +78,15 @@ export function ActiveDownloadRow({
   onCancel: () => void;
 }) {
   const pct = download.total > 0 ? Math.round((download.downloaded / download.total) * 100) : 0;
+  const eta = formatEta(download.total - download.downloaded, download.rate);
   return (
     <div className="manage-row downloading p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="min-w-0">
           <p className="text-sm font-mono text-text-primary truncate">{download.filename}</p>
-          <p className="text-xs text-text-muted font-mono">{download.repoId}</p>
+          <p className="text-xs text-text-muted font-mono">
+            {download.repoId} · {formatSize(download.downloaded)} / {formatSize(download.total)}
+          </p>
         </div>
         <Button variant="ghost" size="sm" onClick={onCancel}>
           <X className="w-4 h-4" />
@@ -91,6 +94,22 @@ export function ActiveDownloadRow({
         </Button>
       </div>
       <Progress value={pct} />
+      <div className="flex items-center justify-between mt-2 text-xs font-mono text-text-muted">
+        {download.isXet ? (
+          <span className="flex items-center gap-1.5 text-cyan">
+            <Zap className="w-3 h-3" />
+            Fast transfer via Xet — progress updates in a few big steps, not smoothly
+          </span>
+        ) : (
+          <>
+            <span>{pct}%</span>
+            <span>
+              {formatSpeed(download.rate)}
+              {eta ? ` · ${eta}` : ""}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 }

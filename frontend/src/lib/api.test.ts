@@ -63,8 +63,21 @@ describe("startDownload", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/downloads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repo_id: "org/model", filename: "model.gguf" }),
+      body: JSON.stringify({ repo_id: "org/model", filename: "model.gguf", is_xet: false }),
     });
     expect(result).toEqual({ id: "abc" });
+  });
+
+  it("passes is_xet through when the file is Xet-backed", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: "abc" }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await startDownload("org/model", "model.gguf", true);
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/downloads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_id: "org/model", filename: "model.gguf", is_xet: true }),
+    });
   });
 });

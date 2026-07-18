@@ -5,6 +5,13 @@ import { useNavigate } from "react-router-dom";
 
 import { ActiveDownloadRow, ManageRow } from "@/components/ManageRow";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDownloads } from "@/hooks/useDownloads";
 import { useManagedModels } from "@/hooks/useManagedModels";
 import type { DownloadState } from "@/types/download";
@@ -40,27 +47,21 @@ export function ManagePage() {
     <div className="flex flex-col h-full">
       <div className="px-10 pt-10 pb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight mb-1.5">Manage</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight mb-1.5">
+            <span className="text-gradient-animate">Manage</span>
+          </h1>
           <p className="text-sm text-text-secondary">Your downloaded models.</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => setSort("name")}
-            className={sort === "name" ? "bg-surface/30" : ""}
-          >
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            Name
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setSort("size")}
-            className={sort === "size" ? "bg-surface/30" : ""}
-          >
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            Size
-          </Button>
-        </div>
+        <Select value={sort} onValueChange={(v) => setSort(v as "name" | "size")}>
+          <SelectTrigger className="w-36 gap-2 border-surface/40">
+            <ArrowUpDown className="w-3.5 h-3.5 text-text-muted" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Name</SelectItem>
+            <SelectItem value="size">Size</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="px-10 flex-1 overflow-y-auto">

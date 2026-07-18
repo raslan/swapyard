@@ -8,9 +8,19 @@ export function Sidebar() {
   return (
     <aside
       data-testid="sidebar"
-      className={`${collapsed ? "w-16" : "w-56"} bg-abyss/80 backdrop-blur-xl border-r border-surface/40 flex flex-col flex-shrink-0 transition-[width] duration-200`}
+      className={`${collapsed ? "w-16" : "w-56"} bg-abyss/80 backdrop-blur-xl border-r border-surface/40 flex flex-col flex-shrink-0 relative overflow-hidden transition-[width] duration-200`}
     >
-      <div className="px-5 py-5 border-b border-surface/40">
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.03] z-0"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          backgroundRepeat: "repeat",
+          backgroundSize: "256px 256px",
+        }}
+      />
+      <div className="absolute inset-0 pointer-events-none z-0 bg-gradient-to-b from-cyan/5 via-transparent to-transparent" />
+      <div className="px-5 py-5 border-b border-surface/40 relative z-10">
         <button
           data-testid="sidebar-toggle"
           onClick={() => setCollapsed((c) => !c)}
@@ -21,14 +31,16 @@ export function Sidebar() {
           </div>
           {!collapsed && (
             <>
-              <span className="font-display font-bold text-lg text-text-primary flex-1 text-left">Swapyard</span>
+              <span className="font-display font-bold text-lg tracking-tight bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent flex-1 text-left">
+                Swapyard
+              </span>
               <PanelLeftClose data-testid="sidebar-collapse-icon" className="w-4 h-4 text-text-muted flex-shrink-0" />
             </>
           )}
         </button>
       </div>
 
-      <nav className="flex-1 py-2 px-3 space-y-1">
+      <nav className="flex-1 py-2 px-3 space-y-1 relative z-10">
         <NavLink
           to="/browse"
           className={({ isActive }) =>

@@ -25,7 +25,7 @@ export function ModelCard({ model, onClick }: { model: ModelSummary; onClick: ()
           {formatNumber(model.downloads)}
         </span>
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5 h-6 overflow-hidden">
         {model.tags.slice(0, 3).map((tag) => (
           <span key={tag} className="badge badge-other">
             {tag}

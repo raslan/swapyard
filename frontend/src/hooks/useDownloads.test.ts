@@ -16,6 +16,8 @@ describe("useDownloads", () => {
         filename: "model.gguf",
         total: 100,
         downloaded: 40,
+        rate: 1024,
+        isXet: false,
         status: "downloading",
         error: null,
       },
@@ -40,7 +42,7 @@ describe("useDownloads", () => {
       await result.current.start("org/model", "model.gguf");
     });
 
-    expect(api.startDownload).toHaveBeenCalledWith("org/model", "model.gguf");
+    expect(api.startDownload).toHaveBeenCalledWith("org/model", "model.gguf", false);
     expect(api.subscribeToDownload).toHaveBeenCalledWith("d2", expect.any(Function), expect.any(Function));
   });
 

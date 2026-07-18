@@ -1,9 +1,11 @@
 # AI assistant artifacts — never committed, local-only
 docs/superpowers/
 CLAUDE.md
+HISTORY.md
 .claude/
 AGENTS.md
 .superpowers/
+.mcp.json
 
 # Python
 backend/.venv/

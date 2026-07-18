@@ -58,6 +58,14 @@ body {
   50% { background-position: 100% center; }
   100% { background-position: 0% center; }
 }
+@keyframes morph {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
 
 /* ===== Ambient Background ===== */
 .ambient-bg {
@@ -195,6 +203,76 @@ body {
 .model-card:hover .card-glow {
   opacity: 1;
 }
+
+/* ===== Download Progress Bar ===== */
+.progress-track {
+  background: #0e0e18;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #1e1e30;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  position: relative;
+  background: linear-gradient(90deg, #22d3ee, #8b5cf6);
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  animation: shimmer 2s linear infinite;
+  background-size: 200% 100%;
+}
+.progress-fill.complete {
+  background: linear-gradient(90deg, #34d399, #10b981);
+}
+.progress-fill.complete::after { display: none; }
+.progress-fill.cancelled { background: #2a2a40; }
+.progress-fill.cancelled::after { display: none; }
+
+/* ===== Shimmer Loading ===== */
+.shimmer-bg {
+  background: linear-gradient(90deg, #0e0e18 25%, #10101a 50%, #0e0e18 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ===== Buttons ===== */
+.btn-primary {
+  background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+  color: #040408;
+  font-family: 'Geist Sans', sans-serif;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  /* Establishes a stacking context so ::before's negative z-index below stays scoped to
+     this button instead of escaping behind it. Needed so the hover overlay (an absolutely
+     positioned pseudo-element) paints *behind* the button's own text/icon - without this, an
+     absolutely-positioned element always paints above plain in-flow content regardless of
+     DOM order, which made the label invisible against the gradient on hover. */
+  isolation: isolate;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, #8b5cf6, #22d3ee);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.btn-primary:hover::before { opacity: 1; }
+.btn-primary:hover {
+  box-shadow: 0 0 30px rgba(34,211,238,0.3), 0 0 60px rgba(139,92,246,0.15);
+  transform: translateY(-1px);
+}
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ===== Search Input ===== */
 .search-input {

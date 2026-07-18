@@ -1,4 +1,5 @@
 import asyncio
+import time
 from unittest.mock import patch
 
 import pytest
@@ -29,6 +30,31 @@ async def test_start_download_completes():
         assert state.status == "complete"
         assert state.downloaded == 100
         assert state.total == 100
+
+
+def fake_hf_hub_download_with_delay(*, repo_id, filename, tqdm_class, **kwargs):
+    bar = tqdm_class(total=100)
+    for _ in range(5):
+        time.sleep(0.02)  # real elapsed time, so tqdm's EMA rate is a genuine non-zero value
+        bar.update(20)
+    bar.close()
+    return "/fake/path"
+
+
+async def test_start_download_reports_rate():
+    with patch(
+        "app.services.downloads.hf_hub_download", side_effect=fake_hf_hub_download_with_delay
+    ):
+        state = await start_download("org/model", "model.gguf")
+        await state.task
+        assert state.rate > 0.0
+
+
+async def test_start_download_stores_is_xet_flag():
+    with patch("app.services.downloads.hf_hub_download", side_effect=fake_hf_hub_download):
+        state = await start_download("org/model", "model.gguf", is_xet=True)
+        await state.task
+        assert state.is_xet is True
 
 
 async def test_start_download_tracked_in_list_downloads():

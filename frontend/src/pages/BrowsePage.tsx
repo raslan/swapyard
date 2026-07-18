@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 import { ModelCard } from "@/components/ModelCard";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useModelSearch } from "@/hooks/useModelSearch";
 
 export function BrowsePage() {
@@ -36,7 +35,7 @@ export function BrowsePage() {
         {loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {Array.from({ length: 9 }).map((_, i) => (
-              <Skeleton key={i} className="h-40 rounded-xl" />
+              <div key={i} className="shimmer-bg h-40 rounded-xl" />
             ))}
           </div>
         )}

@@ -24,6 +24,8 @@ def _to_response(state) -> DownloadStateResponse:
         filename=state.filename,
         total=state.total,
         downloaded=state.downloaded,
+        rate=state.rate,
+        is_xet=state.is_xet,
         status=state.status,
         error=state.error,
     )
@@ -31,7 +33,7 @@ def _to_response(state) -> DownloadStateResponse:
 
 @router.post("", status_code=202)
 async def create_download(body: StartDownloadRequest) -> dict[str, str]:
-    state = await start_download(body.repo_id, body.filename)
+    state = await start_download(body.repo_id, body.filename, body.is_xet)
     return {"id": state.id}
 
 

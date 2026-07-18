@@ -51,8 +51,8 @@ export function useDownloads() {
   }, [attach]);
 
   const start = useCallback(
-    async (repoId: string, filename: string) => {
-      const { id } = await apiStartDownload(repoId, filename);
+    async (repoId: string, filename: string, isXet = false) => {
+      const { id } = await apiStartDownload(repoId, filename, isXet);
       attach(id);
     },
     [attach],

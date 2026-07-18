@@ -21,6 +21,7 @@ class ModelFileResponse(BaseModel):
     name: str
     size: int
     category: str
+    is_xet: bool = False
 
 
 class ModelDetailResponse(BaseModel):
@@ -35,6 +36,7 @@ class ModelDetailResponse(BaseModel):
 class StartDownloadRequest(BaseModel):
     repo_id: str
     filename: str
+    is_xet: bool = False
 
 
 class DownloadStateResponse(BaseModel):
@@ -43,5 +45,7 @@ class DownloadStateResponse(BaseModel):
     filename: str
     total: int
     downloaded: int
+    rate: float
+    is_xet: bool
     status: str
     error: str | None = None

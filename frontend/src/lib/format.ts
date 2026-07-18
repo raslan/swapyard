@@ -17,6 +17,16 @@ export function formatSpeed(bytesPerSec: number): string {
   return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`;
 }
 
+export function formatEta(remainingBytes: number, bytesPerSec: number): string {
+  if (!bytesPerSec || remainingBytes <= 0) return "";
+  const seconds = Math.round(remainingBytes / bytesPerSec);
+  if (seconds < 60) return `${seconds}s left`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s left`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m left`;
+}
+
 export function formatQuantLabel(filename: string): string {
   const stem = filename.replace(/\.gguf$/, "");
   const lastDot = stem.lastIndexOf(".");

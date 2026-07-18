@@ -6,6 +6,8 @@ export interface DownloadState {
   filename: string;
   total: number;
   downloaded: number;
+  rate: number;
+  isXet: boolean;
   status: DownloadStatus;
   error: string | null;
 }

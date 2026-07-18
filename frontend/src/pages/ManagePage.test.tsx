@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -74,6 +74,27 @@ describe("ManagePage", () => {
     expect(deleteSpy).not.toHaveBeenCalled();
   });
 
+  it("re-sorts by name when the sort dropdown selection changes", async () => {
+    const listModelsSpy = vi.spyOn(api, "listManagedModels").mockResolvedValue([
+      { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 2, lastModified: 1, ggufFiles: [] },
+    ]);
+    vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ManagePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(listModelsSpy).toHaveBeenCalledWith("size"));
+
+    await user.click(screen.getByRole("combobox"));
+    await user.click(await screen.findByRole("option", { name: "Name" }));
+
+    await waitFor(() => expect(listModelsSpy).toHaveBeenCalledWith("name"));
+  });
+
   it("renders a quant badge for each downloaded gguf file", async () => {
     vi.spyOn(api, "listManagedModels").mockResolvedValue([
       {
@@ -97,6 +118,34 @@ describe("ManagePage", () => {
     expect(screen.getByText("Q8_0")).toBeInTheDocument();
   });
 
+  it("shows an honest fast-transfer message instead of pct/speed for an Xet download", async () => {
+    vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
+    vi.spyOn(api, "listActiveDownloads").mockResolvedValue([
+      {
+        id: "d1",
+        repoId: "org/model",
+        filename: "model.gguf",
+        total: 100,
+        downloaded: 40,
+        rate: 1024,
+        isXet: true,
+        status: "downloading",
+        error: null,
+      },
+    ]);
+    vi.spyOn(api, "subscribeToDownload").mockReturnValue(() => {});
+
+    render(
+      <MemoryRouter>
+        <ManagePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText("model.gguf")).toBeInTheDocument());
+    expect(screen.getByText(/fast transfer via xet/i)).toBeInTheDocument();
+    expect(screen.queryByText("40%")).not.toBeInTheDocument();
+  });
+
   it("shows an in-progress download with a cancel button", async () => {
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([
@@ -106,6 +155,8 @@ describe("ManagePage", () => {
         filename: "model.gguf",
         total: 100,
         downloaded: 40,
+        rate: 1024,
+        isXet: false,
         status: "downloading",
         error: null,
       },
@@ -136,6 +187,8 @@ describe("ManagePage", () => {
         filename: "model.gguf",
         total: 100,
         downloaded: 40,
+        rate: 1024,
+        isXet: false,
         status: "downloading",
         error: null,
       },
@@ -156,14 +209,20 @@ describe("ManagePage", () => {
     await waitFor(() => expect(screen.getByText("model.gguf")).toBeInTheDocument());
     expect(listModelsSpy).toHaveBeenCalledTimes(1);
 
-    // Simulate the SSE "done" event that fires when the download finishes.
-    act(() => {
+    // Simulate the SSE "done" event that fires when the download finishes. Async act():
+    // this callback triggers a cascade (state update -> effect -> queueMicrotask -> async
+    // refetch() -> another state update) - the sync form only flushes the first state
+    // update, leaving a real race between that and the queued refetch depending on
+    // scheduling jitter (this is what made the test flaky).
+    await act(async () => {
       onDone?.({
         id: "d1",
         repoId: "org/model",
         filename: "model.gguf",
         total: 100,
         downloaded: 100,
+        rate: 0,
+        isXet: false,
         status: "complete",
         error: null,
       });
@@ -171,6 +230,16 @@ describe("ManagePage", () => {
 
     await waitFor(() => expect(listModelsSpy).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
-    expect(screen.queryByText("model.gguf")).not.toBeInTheDocument();
+    // The completed row leaves the DOM via a motion.js exit animation (AnimatePresence),
+    // not immediately when React drops it from the list - the node lingers (opacity: 0,
+    // still text-queryable) until that transition finishes. By this point it's usually
+    // already gone (waitForElementToBeRemoved requires the element to exist up front, so
+    // only wait if it's still mid-exit); either way, don't assert synchronously - that
+    // raced against the animation's duration (flaky: passed or failed depending on how
+    // much wall-clock time the preceding waitFor polls happened to burn).
+    const stillExiting = screen.queryByText("model.gguf");
+    if (stillExiting) {
+      await waitForElementToBeRemoved(stillExiting);
+    }
   });
 });

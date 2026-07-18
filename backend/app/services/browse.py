@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass
 
 import httpx
@@ -9,6 +10,16 @@ from app.errors import NotFoundError, UpstreamError
 
 GGUF_FILE_SUFFIX = ".gguf"
 ACCOMPANYING_SUFFIXES = (".json", ".txt", ".model", ".vocab")
+
+# HF model card READMEs start with a YAML frontmatter block (license, tags, etc, used by
+# the HF website itself to render the info sidebar) delimited by "---" lines. It's not
+# markdown and renders as garbage (a stray <hr> plus the raw YAML as a paragraph/list) if
+# passed through untouched.
+_FRONTMATTER_RE = re.compile(r"\A---\r?\n.*?\r?\n---\r?\n?", re.DOTALL)
+
+
+def _strip_frontmatter(text: str) -> str:
+    return _FRONTMATTER_RE.sub("", text, count=1)
 
 
 @dataclass
@@ -25,6 +36,7 @@ class ModelFile:
     name: str
     size: int
     category: str
+    is_xet: bool = False
 
 
 @dataclass
@@ -72,12 +84,18 @@ def get_model_detail(repo_id: str) -> ModelDetail:
     except HfHubHTTPError as exc:
         raise UpstreamError(f"failed to reach Hugging Face: {exc}") from exc
 
+    xet_files = _fetch_xet_filenames(repo_id)
     files = []
     for sibling in info.siblings or []:
         category = _categorize_file(sibling.rfilename)
         if category is not None:
             files.append(
-                ModelFile(name=sibling.rfilename, size=sibling.size or 0, category=category)
+                ModelFile(
+                    name=sibling.rfilename,
+                    size=sibling.size or 0,
+                    category=category,
+                    is_xet=sibling.rfilename in xet_files,
+                )
             )
 
     readme = _fetch_readme(repo_id)
@@ -90,6 +108,36 @@ def get_model_detail(repo_id: str) -> ModelDetail:
         readme=readme,
         files=files,
     )
+
+
+def _fetch_xet_filenames(repo_id: str) -> set[str]:
+    """Which files in a repo are stored on HF's Xet backend.
+
+    `HfApi.model_info()`'s typed `siblings` (used above for name/size/category) doesn't
+    surface this - only the raw tree API response includes an `xetHash` key per file. Xet
+    files download through hf_xet's own multi-connection reconstruction, which only reports
+    progress in ~2 big jumps rather than smooth per-chunk updates (confirmed by direct
+    testing - see downloads.py), so the frontend needs to know which files these are to set
+    the right expectation instead of showing a progress bar that looks stuck then "lies".
+
+    Best-effort: this is a labeling nicety, not core file-listing data, so any failure here
+    (network hiccup, endpoint shape change) degrades to "assume not Xet" rather than failing
+    the whole model-detail request. Not paginated - fine for GGUF repos, which never have
+    anywhere near the tree API's default page size worth of files.
+    """
+    url = f"https://huggingface.co/api/models/{repo_id}/tree/main"
+    headers = {}
+    token = os.environ.get("HF_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    try:
+        response = httpx.get(url, headers=headers, follow_redirects=True)
+        response.raise_for_status()
+        entries = response.json()
+        return {entry["path"] for entry in entries if "xetHash" in entry}
+    except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        return set()
 
 
 def _fetch_readme(repo_id: str) -> str:
@@ -120,4 +168,4 @@ def _fetch_readme(repo_id: str) -> str:
     except httpx.HTTPStatusError:
         return ""
 
-    return response.text
+    return _strip_frontmatter(response.text)
