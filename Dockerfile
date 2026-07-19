@@ -8,6 +8,8 @@ RUN npm run build
 
 # ---- Stage 2: shipped image ----
 FROM python:3.12-slim
+RUN useradd --uid 1000 --create-home --shell /bin/bash app
+ENV UV_CACHE_DIR=/app/.uv-cache
 WORKDIR /app
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -17,6 +19,9 @@ RUN cd backend && uv sync --no-dev --frozen
 
 COPY backend/app ./backend/app
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+
+RUN mkdir -p /home/app/.cache/huggingface/hub && chown -R app:app /app /home/app
+USER app
 
 WORKDIR /app/backend
 EXPOSE 8000

@@ -20,5 +20,8 @@ frontend/.vite/
 frontend/playwright-report/
 frontend/test-results/
 
+# Local overrides with real filesystem paths — never committed
+docker-compose.override.yml
+
 # OS
 .DS_Store
