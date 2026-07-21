@@ -1,9 +1,27 @@
-import { Anchor, Compass, HardDrive, PanelLeftClose } from "lucide-react";
-import { useState } from "react";
+import { Anchor, Compass, HardDrive, PanelLeftClose, Settings2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+
+import { getConfigStatus } from "@/lib/api";
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [configFailed, setConfigFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = () => {
+      getConfigStatus().then((s) => {
+        if (!cancelled) setConfigFailed(s.status?.startsWith("failed") ?? false);
+      });
+    };
+    poll();
+    const interval = setInterval(poll, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <aside
@@ -58,6 +76,21 @@ export function Sidebar() {
         >
           <HardDrive className="w-4 h-4 shrink-0" />
           {!collapsed && <span>Manage</span>}
+        </NavLink>
+        <NavLink
+          to="/config"
+          className={({ isActive }) =>
+            `sidebar-item flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium ${isActive ? "active text-text-primary" : "text-text-muted"}`
+          }
+        >
+          <Settings2 className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Config</span>}
+          {configFailed && (
+            <span
+              data-testid="config-nav-badge"
+              className="ml-auto w-2 h-2 rounded-full bg-red-500 shrink-0"
+            />
+          )}
         </NavLink>
       </nav>
     </aside>

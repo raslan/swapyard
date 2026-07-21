@@ -6,9 +6,26 @@ import { configDefaults } from "vitest/config";
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      // monaco-editor@0.56's package.json "exports" map only defines a bare
+      // "./*" -> "./esm/vs/*.js" wildcard. Callers (including monaco-yaml's own
+      // monaco-worker-manager dependency, and our own worker setup below) import
+      // using the pre-exports-map convention "monaco-editor/esm/vs/...", which
+      // the wildcard then double-prefixes into a nonexistent "esm/vs/esm/vs/..."
+      // path. This alias resolves those deep imports directly against the
+      // filesystem, bypassing the broken wildcard.
+      {
+        find: /^monaco-editor\/esm\/vs\/(.*)$/,
+        replacement: path.resolve(__dirname, "node_modules/monaco-editor/esm/vs/") + "/$1",
+      },
+      // monaco-themes' package.json "exports" map doesn't list per-theme JSON
+      // files at all, so deep imports of them need the same filesystem bypass.
+      {
+        find: /^monaco-themes\/themes\/(.*)\.json$/,
+        replacement: path.resolve(__dirname, "node_modules/monaco-themes/themes/") + "/$1.json",
+      },
+    ],
   },
   test: {
     environment: "jsdom",

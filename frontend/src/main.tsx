@@ -6,6 +6,7 @@ import { AppShell } from "./components/AppShell";
 import "./index.css";
 import { BrowseDetailPage } from "./pages/BrowseDetailPage";
 import { BrowsePage } from "./pages/BrowsePage";
+import { ConfigPage } from "./pages/ConfigPage";
 import { ManagePage } from "./pages/ManagePage";
 
 const router = createBrowserRouter([
@@ -17,6 +18,7 @@ const router = createBrowserRouter([
       { path: "browse", element: <BrowsePage /> },
       { path: "browse/*", element: <BrowseDetailPage /> },
       { path: "manage", element: <ManagePage /> },
+      { path: "config", element: <ConfigPage /> },
     ],
   },
 ]);

@@ -1,11 +1,20 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import * as api from "@/lib/api";
 import { Sidebar } from "./Sidebar";
 
 describe("Sidebar", () => {
+  beforeEach(() => {
+    vi.spyOn(api, "getConfigStatus").mockResolvedValue({ status: null, timestamp: null });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders Browse and Manage nav links", () => {
     render(
       <MemoryRouter initialEntries={["/browse"]}>
@@ -68,5 +77,17 @@ describe("Sidebar", () => {
     await user.click(screen.getByTestId("sidebar-toggle"));
 
     expect(screen.queryByTestId("sidebar-collapse-icon")).not.toBeInTheDocument();
+  });
+
+  it("shows a badge on the Config nav item when the last apply failed", async () => {
+    vi.spyOn(api, "getConfigStatus").mockResolvedValue({ status: "failed: crash", timestamp: 1 });
+
+    render(
+      <MemoryRouter initialEntries={["/browse"]}>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("config-nav-badge")).toBeInTheDocument());
   });
 });
