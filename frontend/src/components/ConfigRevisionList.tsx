@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { ConfigDiffView } from "@/components/ConfigDiffView";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { ConfigRevision } from "@/types/config";
 
 interface ConfigRevisionListProps {
@@ -29,30 +30,35 @@ export function ConfigRevisionList({ revisions, currentContent, onLoadIntoEditor
               </span>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPreviewSha(previewSha === revision.sha ? null : revision.sha)}
-              >
-                {previewSha === revision.sha ? "Hide diff" : "Preview diff"}
+              <Button variant="outline" size="sm" onClick={() => setPreviewSha(revision.sha)}>
+                Preview diff
               </Button>
               <Button size="sm" onClick={() => onLoadIntoEditor(revision)}>
                 Load into editor
               </Button>
             </div>
           </div>
-          {previewing?.sha === revision.sha && (
-            <div className="mt-3">
-              <ConfigDiffView
-                original={currentContent}
-                modified={revision.content}
-                originalLabel="Current"
-                modifiedLabel={`Revision ${revision.sha.slice(0, 8)}`}
-              />
-            </div>
-          )}
         </div>
       ))}
+
+      <Dialog open={previewing !== null} onOpenChange={(open) => !open && setPreviewSha(null)}>
+        <DialogContent className="sm:max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>
+              {previewing ? `Diff against revision ${previewing.sha.slice(0, 8)}` : "Diff"}
+            </DialogTitle>
+          </DialogHeader>
+          {previewing && (
+            <ConfigDiffView
+              original={currentContent}
+              modified={previewing.content}
+              originalLabel="Current"
+              modifiedLabel={`Revision ${previewing.sha.slice(0, 8)}`}
+              height="65vh"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

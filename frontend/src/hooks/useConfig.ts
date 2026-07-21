@@ -28,6 +28,7 @@ export function useConfig() {
     null,
   );
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const refetchHistory = useCallback(async () => {
     setHistory(await getConfigHistory());
@@ -48,6 +49,7 @@ export function useConfig() {
   const save = useCallback(async () => {
     if (content === savedContent) return;
     setValidationError(null);
+    setSaveError(null);
     try {
       const result = await applyConfig(content, hash);
       const kind = result.status === "ok" ? "ok" : result.status === "unverified" ? "unverified" : "failed";
@@ -70,7 +72,10 @@ export function useConfig() {
         setValidationError(e.message);
         return;
       }
-      throw e;
+      // Anything else (network error, unexpected 500, ...) must still reach
+      // the user - an unhandled rejection here is silent and indistinguishable
+      // from the apply having succeeded.
+      setSaveError(e instanceof Error ? e.message : "Save failed unexpectedly.");
     }
   }, [content, savedContent, hash, refetchHistory]);
 
@@ -103,6 +108,7 @@ export function useConfig() {
     applyResult,
     conflict,
     validationError,
+    saveError,
     setContent,
     save,
     resolveConflictKeepMine,

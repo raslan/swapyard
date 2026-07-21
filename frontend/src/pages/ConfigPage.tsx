@@ -50,6 +50,7 @@ export function ConfigPage() {
     applyResult,
     conflict,
     validationError,
+    saveError,
     setContent,
     save,
     resolveConflictKeepMine,
@@ -88,6 +89,10 @@ export function ConfigPage() {
   useEffect(() => {
     if (validationError) toast.error(validationError);
   }, [validationError]);
+
+  useEffect(() => {
+    if (saveError) toast.error(`Save failed: ${saveError}`);
+  }, [saveError]);
 
   if (loading) return <div className="p-10 text-text-secondary">Loading config...</div>;
 

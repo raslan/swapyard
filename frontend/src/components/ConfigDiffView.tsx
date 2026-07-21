@@ -8,9 +8,16 @@ interface ConfigDiffViewProps {
   modified: string;
   originalLabel: string;
   modifiedLabel: string;
+  height?: string;
 }
 
-export function ConfigDiffView({ original, modified, originalLabel, modifiedLabel }: ConfigDiffViewProps) {
+export function ConfigDiffView({
+  original,
+  modified,
+  originalLabel,
+  modifiedLabel,
+  height = "400px",
+}: ConfigDiffViewProps) {
   useEffect(() => {
     setupMonacoEnvironment();
   }, []);
@@ -21,14 +28,20 @@ export function ConfigDiffView({ original, modified, originalLabel, modifiedLabe
         <div className="flex-1 px-3 py-1.5">{originalLabel}</div>
         <div className="flex-1 px-3 py-1.5">{modifiedLabel}</div>
       </div>
-      <DiffEditor
-        height="400px"
-        language="yaml"
-        original={original}
-        modified={modified}
-        theme="vs-dark"
-        options={{ readOnly: true, renderSideBySide: true, minimap: { enabled: false } }}
-      />
+      {original === modified ? (
+        <div className="px-4 py-8 text-center text-sm text-text-muted">
+          No differences — content is identical.
+        </div>
+      ) : (
+        <DiffEditor
+          height={height}
+          language="yaml"
+          original={original}
+          modified={modified}
+          theme="vs-dark"
+          options={{ readOnly: true, renderSideBySide: true, minimap: { enabled: false } }}
+        />
+      )}
     </div>
   );
 }

@@ -108,4 +108,21 @@ describe("useConfig", () => {
     expect(result.current.hash).toBe("newhash");
     expect(result.current.conflict).toBeNull();
   });
+
+  it("save() surfaces an unexpected error via saveError instead of throwing silently", async () => {
+    vi.spyOn(api, "getConfig").mockResolvedValue({ content: "models: {}\n", hash: "abc" });
+    vi.spyOn(api, "getConfigStatus").mockResolvedValue({ status: null, timestamp: null });
+    vi.spyOn(api, "getConfigHistory").mockResolvedValue([]);
+    vi.spyOn(api, "applyConfig").mockRejectedValue(new Error("Request to /api/config failed with 500"));
+
+    const { result } = renderHook(() => useConfig());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.setContent("models: {a: 1}\n"));
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(result.current.saveError).toBe("Request to /api/config failed with 500");
+  });
 });
