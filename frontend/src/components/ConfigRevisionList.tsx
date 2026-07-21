@@ -7,13 +7,16 @@ import type { ConfigRevision } from "@/types/config";
 
 interface ConfigRevisionListProps {
   revisions: ConfigRevision[];
-  currentContent: string;
   onLoadIntoEditor: (revision: ConfigRevision) => void;
 }
 
-export function ConfigRevisionList({ revisions, currentContent, onLoadIntoEditor }: ConfigRevisionListProps) {
+export function ConfigRevisionList({ revisions, onLoadIntoEditor }: ConfigRevisionListProps) {
   const [previewSha, setPreviewSha] = useState<string | null>(null);
-  const previewing = revisions.find((r) => r.sha === previewSha) ?? null;
+  const previewIndex = revisions.findIndex((r) => r.sha === previewSha);
+  const previewing = previewIndex === -1 ? null : revisions[previewIndex];
+  // revisions is newest-first, so what this revision changed *from* is the
+  // next entry in the list; the oldest revision has none (diff against empty).
+  const previousContent = previewIndex === -1 ? "" : (revisions[previewIndex + 1]?.content ?? "");
 
   return (
     <div className="space-y-2">
@@ -45,14 +48,14 @@ export function ConfigRevisionList({ revisions, currentContent, onLoadIntoEditor
         <DialogContent className="sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>
-              {previewing ? `Diff against revision ${previewing.sha.slice(0, 8)}` : "Diff"}
+              {previewing ? `What changed in revision ${previewing.sha.slice(0, 8)}` : "Diff"}
             </DialogTitle>
           </DialogHeader>
           {previewing && (
             <ConfigDiffView
-              original={currentContent}
+              original={previousContent}
               modified={previewing.content}
-              originalLabel="Current"
+              originalLabel={revisions[previewIndex + 1] ? "Previous revision" : "(none - first revision)"}
               modifiedLabel={`Revision ${previewing.sha.slice(0, 8)}`}
               height="65vh"
             />

@@ -23,7 +23,7 @@ const revisions = [
 describe("ConfigRevisionList", () => {
   it("renders one row per revision with its status", () => {
     render(
-      <ConfigRevisionList revisions={revisions} currentContent="models: {a: 1}\n" onLoadIntoEditor={vi.fn()} />,
+      <ConfigRevisionList revisions={revisions} onLoadIntoEditor={vi.fn()} />,
     );
 
     expect(screen.getByText(/ok/i)).toBeInTheDocument();
@@ -33,7 +33,7 @@ describe("ConfigRevisionList", () => {
   it("calls onLoadIntoEditor with the selected revision when its restore action is used", async () => {
     const onLoadIntoEditor = vi.fn();
     render(
-      <ConfigRevisionList revisions={revisions} currentContent="models: {a: 1}\n" onLoadIntoEditor={onLoadIntoEditor} />,
+      <ConfigRevisionList revisions={revisions} onLoadIntoEditor={onLoadIntoEditor} />,
     );
 
     await userEvent.click(screen.getAllByRole("button", { name: /load into editor/i })[1]);
@@ -43,12 +43,21 @@ describe("ConfigRevisionList", () => {
 
   it("opens a dialog with the diff when Preview diff is clicked", async () => {
     render(
-      <ConfigRevisionList revisions={revisions} currentContent="models: {a: 1}\n" onLoadIntoEditor={vi.fn()} />,
+      <ConfigRevisionList revisions={revisions} onLoadIntoEditor={vi.fn()} />,
     );
 
     await userEvent.click(screen.getAllByRole("button", { name: /preview diff/i })[1]);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText(/diff against revision bbb222/i)).toBeInTheDocument();
+    expect(screen.getByText(/what changed in revision bbb222/i)).toBeInTheDocument();
+  });
+
+  it("diffs a revision against the one before it, not against current editor content", async () => {
+    render(<ConfigRevisionList revisions={revisions} onLoadIntoEditor={vi.fn()} />);
+
+    // revisions[0] (aaa111) is newest; its "previous" is revisions[1] (bbb222)
+    await userEvent.click(screen.getAllByRole("button", { name: /preview diff/i })[0]);
+
+    expect(screen.getByText(/previous revision/i)).toBeInTheDocument();
   });
 });

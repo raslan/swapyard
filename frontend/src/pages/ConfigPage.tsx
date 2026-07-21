@@ -154,7 +154,6 @@ export function ConfigPage() {
                 ) : (
                   <ConfigRevisionList
                     revisions={history}
-                    currentContent={content}
                     onLoadIntoEditor={(revision) => {
                       loadRevisionIntoEditor(revision);
                       setHistoryOpen(false);
