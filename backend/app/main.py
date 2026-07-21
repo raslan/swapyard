@@ -8,6 +8,7 @@ from starlette.types import Scope
 
 from app.errors import register_error_handlers
 from app.routes.browse import router as browse_router
+from app.routes.config import router as config_router
 from app.routes.downloads import router as downloads_router
 from app.routes.manage import router as manage_router
 
@@ -44,6 +45,7 @@ register_error_handlers(app)
 app.include_router(manage_router)
 app.include_router(browse_router)
 app.include_router(downloads_router)
+app.include_router(config_router)
 
 
 @app.get("/api/health")
