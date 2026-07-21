@@ -93,3 +93,80 @@ def get_status(history_dir: str) -> dict | None:
         return None
     latest = revisions[0]
     return {"status": latest["status"], "timestamp": latest["timestamp"]}
+
+
+import asyncio
+
+import httpx
+
+
+class ConfigConflict(Exception):
+    def __init__(self, current_content: str, current_hash: str):
+        self.current_content = current_content
+        self.current_hash = current_hash
+        super().__init__("config changed on disk since it was loaded")
+
+
+class ConfigInvalid(Exception):
+    def __init__(self, errors: list[str]):
+        self.errors = errors
+        super().__init__("; ".join(errors))
+
+
+async def _verify_health(
+    llama_swap_url: str, poll_interval: float, poll_attempts: int
+) -> tuple[bool, str | None]:
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for _ in range(poll_attempts):
+            try:
+                resp = await client.get(f"{llama_swap_url}/health")
+                if resp.status_code == 200:
+                    return True, None
+            except httpx.HTTPError:
+                pass
+            await asyncio.sleep(poll_interval)
+
+        logs: str | None = None
+        try:
+            logs_resp = await client.get(f"{llama_swap_url}/logs")
+            if logs_resp.status_code == 200:
+                logs = logs_resp.text[-2000:]
+        except httpx.HTTPError:
+            pass
+        return False, logs
+
+
+def apply_config(
+    config_path: str,
+    history_dir: str,
+    content: str,
+    base_hash: str,
+    llama_swap_url: str | None,
+    health_poll_interval: float = 1.0,
+    health_poll_attempts: int = 15,
+) -> dict:
+    current_content, current_hash = read_config(config_path)
+    if current_hash != base_hash:
+        raise ConfigConflict(current_content, current_hash)
+
+    errors = validate_config(content)
+    if errors:
+        raise ConfigInvalid(errors)
+
+    with open(config_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    if llama_swap_url is None:
+        commit_revision(history_dir, content, "unverified")
+        return {"status": "unverified", "logs": None}
+
+    healthy, logs = asyncio.run(
+        _verify_health(llama_swap_url, health_poll_interval, health_poll_attempts)
+    )
+    if healthy:
+        commit_revision(history_dir, content, "ok")
+        return {"status": "ok", "logs": None}
+
+    reason = logs or "llama-swap did not become healthy in time"
+    commit_revision(history_dir, content, f"failed: {reason[:200]}")
+    return {"status": f"failed: {reason[:200]}", "logs": logs}
