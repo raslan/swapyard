@@ -46,11 +46,33 @@ describe("ConfigPage", () => {
     render(<ConfigPage />);
     await waitFor(() => expect(screen.getByTestId("mock-editor")).toBeInTheDocument());
 
+    expect(screen.getByRole("button", { name: /save & apply/i })).toBeDisabled();
+
+    await userEvent.type(screen.getByTestId("mock-editor"), "\n");
+    expect(screen.getByRole("button", { name: /save & apply/i })).toBeEnabled();
+
     await userEvent.click(screen.getByRole("button", { name: /save & apply/i }));
     expect(screen.getByText(/restart llama-swap/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
 
     await waitFor(() => expect(api.applyConfig).toHaveBeenCalled());
+  });
+
+  it("opens the revision history sheet from the History button", async () => {
+    vi.spyOn(api, "getConfig").mockResolvedValue({ content: "models: {}\n", hash: "abc" });
+    vi.spyOn(api, "getConfigStatus").mockResolvedValue({ status: null, timestamp: null });
+    vi.spyOn(api, "getConfigHistory").mockResolvedValue([
+      { sha: "aaa111", timestamp: 1721300000, status: "ok", content: "models: {a: 1}\n" },
+    ]);
+    vi.spyOn(api, "getConfigSchema").mockResolvedValue({ title: "llama-swap configuration" });
+
+    render(<ConfigPage />);
+    await waitFor(() => expect(screen.getByTestId("mock-editor")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /history/i }));
+
+    expect(screen.getByText(/revision history/i)).toBeInTheDocument();
+    expect(screen.getByText(/aaa111/)).toBeInTheDocument();
   });
 });

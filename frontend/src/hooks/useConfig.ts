@@ -18,6 +18,7 @@ type ApplyResult =
 
 export function useConfig() {
   const [content, setContent] = useState("");
+  const [savedContent, setSavedContent] = useState("");
   const [hash, setHash] = useState("");
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<ConfigStatus>({ status: null, timestamp: null });
@@ -36,6 +37,7 @@ export function useConfig() {
     (async () => {
       const [configData, statusData] = await Promise.all([getConfig(), getConfigStatus()]);
       setContent(configData.content);
+      setSavedContent(configData.content);
       setHash(configData.hash);
       setStatus(statusData);
       await refetchHistory();
@@ -44,6 +46,7 @@ export function useConfig() {
   }, [refetchHistory]);
 
   const save = useCallback(async () => {
+    if (content === savedContent) return;
     setValidationError(null);
     try {
       const result = await applyConfig(content, hash);
@@ -51,9 +54,13 @@ export function useConfig() {
       setApplyResult({ kind, logs: result.logs });
       setStatus({ status: result.status, timestamp: Date.now() / 1000 });
       await refetchHistory();
-      if (kind !== "failed") {
-        setHash(hash); // content already matches what was just written
-      }
+      // A "failed" outcome still writes to disk (no auto-revert), so content
+      // is saved either way - only the health verification failed. Refetch
+      // rather than reuse the stale client-side hash: the server's hash of
+      // what's now on disk is the only correct base_hash for the next apply.
+      const fresh = await getConfig();
+      setHash(fresh.hash);
+      setSavedContent(fresh.content);
     } catch (e) {
       if (e instanceof ConfigConflictError) {
         setConflict({ diskContent: e.diskContent, diskHash: e.diskHash });
@@ -65,11 +72,12 @@ export function useConfig() {
       }
       throw e;
     }
-  }, [content, hash, refetchHistory]);
+  }, [content, savedContent, hash, refetchHistory]);
 
   const resolveConflictLoadLatest = useCallback(() => {
     if (!conflict) return;
     setContent(conflict.diskContent);
+    setSavedContent(conflict.diskContent);
     setHash(conflict.diskHash);
     setConflict(null);
   }, [conflict]);
@@ -87,6 +95,7 @@ export function useConfig() {
 
   return {
     content,
+    isDirty: content !== savedContent,
     hash,
     loading,
     status,

@@ -22,8 +22,10 @@ describe("useConfig", () => {
     expect(result.current.status).toEqual({ status: "ok", timestamp: 1 });
   });
 
-  it("save() applies successfully and records the ok outcome", async () => {
-    vi.spyOn(api, "getConfig").mockResolvedValue({ content: "models: {}\n", hash: "abc" });
+  it("save() applies successfully, records the ok outcome, and clears isDirty using the refetched hash", async () => {
+    vi.spyOn(api, "getConfig")
+      .mockResolvedValueOnce({ content: "models: {}\n", hash: "abc" })
+      .mockResolvedValueOnce({ content: "models: {a: {cmd: llama-server}}\n", hash: "def" });
     vi.spyOn(api, "getConfigStatus").mockResolvedValue({ status: null, timestamp: null });
     vi.spyOn(api, "getConfigHistory").mockResolvedValue([]);
     vi.spyOn(api, "applyConfig").mockResolvedValue({ status: "ok", logs: null });
@@ -32,12 +34,34 @@ describe("useConfig", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     act(() => result.current.setContent("models: {a: {cmd: llama-server}}\n"));
+    expect(result.current.isDirty).toBe(true);
+
     await act(async () => {
       await result.current.save();
     });
 
     expect(api.applyConfig).toHaveBeenCalledWith("models: {a: {cmd: llama-server}}\n", "abc");
     expect(result.current.applyResult.kind).toBe("ok");
+    // hash refetched from the server rather than reusing the stale pre-apply
+    // hash - reusing it would make the *next* apply falsely conflict.
+    expect(result.current.hash).toBe("def");
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it("save() is a no-op when content hasn't changed since it was loaded", async () => {
+    vi.spyOn(api, "getConfig").mockResolvedValue({ content: "models: {}\n", hash: "abc" });
+    vi.spyOn(api, "getConfigStatus").mockResolvedValue({ status: null, timestamp: null });
+    vi.spyOn(api, "getConfigHistory").mockResolvedValue([]);
+    vi.spyOn(api, "applyConfig").mockResolvedValue({ status: "ok", logs: null });
+
+    const { result } = renderHook(() => useConfig());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(api.applyConfig).not.toHaveBeenCalled();
   });
 
   it("save() surfaces a conflict without touching editor content", async () => {

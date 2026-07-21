@@ -1,5 +1,7 @@
 import { Editor, useMonaco } from "@monaco-editor/react";
+import { History } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -19,6 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { ConfigDiffView } from "@/components/ConfigDiffView";
 import { ConfigRevisionList } from "@/components/ConfigRevisionList";
 import { useConfig } from "@/hooks/useConfig";
@@ -34,6 +43,7 @@ setupMonacoEnvironment();
 export function ConfigPage() {
   const {
     content,
+    isDirty,
     loading,
     status,
     history,
@@ -49,6 +59,7 @@ export function ConfigPage() {
 
   const monaco = useMonaco();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [theme, setTheme] = useState(SWAPYARD_THEME_ID);
 
   useEffect(() => {
@@ -62,6 +73,21 @@ export function ConfigPage() {
     });
     return () => disposable?.dispose();
   }, [monaco]);
+
+  // Transient outcomes surface as toasts rather than banners so they never
+  // push the editor around - a fixed editor area (no page scroll) was an
+  // explicit requirement.
+  useEffect(() => {
+    if (applyResult.kind === "ok") toast.success("Applied and verified healthy.");
+    else if (applyResult.kind === "unverified")
+      toast.warning("Applied — couldn't verify (no reachable llama-swap URL configured).");
+    else if (applyResult.kind === "failed")
+      toast.error(`Apply failed: ${applyResult.logs ?? "llama-swap did not become healthy in time"}`);
+  }, [applyResult]);
+
+  useEffect(() => {
+    if (validationError) toast.error(validationError);
+  }, [validationError]);
 
   if (loading) return <div className="p-10 text-text-secondary">Loading config...</div>;
 
@@ -95,30 +121,49 @@ export function ConfigPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={() => setConfirmOpen(true)}>Save & Apply</Button>
+          <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="relative border-surface/40">
+                <History className="w-4 h-4" />
+                History
+                {lastFailed && (
+                  <span
+                    data-testid="history-failed-badge"
+                    className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500"
+                  />
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Revision history</SheetTitle>
+              </SheetHeader>
+              <div className="px-4 pb-4">
+                {lastFailed && (
+                  <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    Last apply failed: {status.status}
+                  </div>
+                )}
+                {history.length === 0 ? (
+                  <p className="text-sm text-text-muted">No revisions yet. Save & Apply to create one.</p>
+                ) : (
+                  <ConfigRevisionList
+                    revisions={history}
+                    currentContent={content}
+                    onLoadIntoEditor={(revision) => {
+                      loadRevisionIntoEditor(revision);
+                      setHistoryOpen(false);
+                    }}
+                  />
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+          <Button onClick={() => setConfirmOpen(true)} disabled={!isDirty}>
+            Save & Apply
+          </Button>
         </div>
       </div>
-
-      {lastFailed && (
-        <div className="mx-10 mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          Last apply failed: {status.status}
-        </div>
-      )}
-      {validationError && (
-        <div className="mx-10 mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          {validationError}
-        </div>
-      )}
-      {applyResult.kind === "unverified" && (
-        <div className="mx-10 mb-4 rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
-          Applied — couldn't verify (no reachable llama-swap URL configured).
-        </div>
-      )}
-      {applyResult.kind === "ok" && (
-        <div className="mx-10 mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-          Applied and verified healthy.
-        </div>
-      )}
 
       {conflict && (
         <div className="mx-10 mb-4 space-y-3">
@@ -140,7 +185,7 @@ export function ConfigPage() {
         </div>
       )}
 
-      <div className="px-10 flex-1 min-h-0">
+      <div className="px-10 pb-10 flex-1 min-h-0">
         <Editor
           height="100%"
           language="yaml"
@@ -152,15 +197,6 @@ export function ConfigPage() {
             fontLigatures: true,
             minimap: { enabled: false },
           }}
-        />
-      </div>
-
-      <div className="px-10 py-6">
-        <h2 className="text-sm font-semibold text-text-secondary mb-3">Revision history</h2>
-        <ConfigRevisionList
-          revisions={history}
-          currentContent={content}
-          onLoadIntoEditor={loadRevisionIntoEditor}
         />
       </div>
 

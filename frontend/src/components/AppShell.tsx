@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Outlet, useLocation } from "react-router-dom";
 
+import { Toaster } from "@/components/ui/sonner";
+
 import { Sidebar } from "./Sidebar";
 
 export function AppShell() {
@@ -31,6 +33,7 @@ export function AppShell() {
           </AnimatePresence>
         </main>
       </div>
+      <Toaster />
     </>
   );
 }
