@@ -49,3 +49,30 @@ class DownloadStateResponse(BaseModel):
     is_xet: bool
     status: str
     error: str | None = None
+
+
+class ConfigResponse(BaseModel):
+    content: str
+    hash: str
+
+
+class ConfigApplyRequest(BaseModel):
+    content: str
+    base_hash: str
+
+
+class ConfigApplyResponse(BaseModel):
+    status: str
+    logs: str | None = None
+
+
+class ConfigRevisionResponse(BaseModel):
+    sha: str
+    timestamp: float
+    status: str
+    content: str
+
+
+class ConfigStatusResponse(BaseModel):
+    status: str | None = None
+    timestamp: float | None = None
