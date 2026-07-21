@@ -22,7 +22,8 @@ import {
 import { ConfigDiffView } from "@/components/ConfigDiffView";
 import { ConfigRevisionList } from "@/components/ConfigRevisionList";
 import { useConfig } from "@/hooks/useConfig";
-import { getConfigSchema } from "@/lib/api";
+import { getConfigFlags, getConfigSchema } from "@/lib/api";
+import { registerCmdFlagProvider } from "@/lib/cmdFlagProvider";
 import { configureYamlSchema, setupMonacoEnvironment } from "@/lib/monacoWorkers";
 import { SWAPYARD_THEME_ID, THEME_OPTIONS, registerMonacoThemes } from "@/lib/monacoThemes";
 
@@ -54,6 +55,12 @@ export function ConfigPage() {
     if (!monaco) return;
     registerMonacoThemes(monaco);
     getConfigSchema().then((schema) => configureYamlSchema(monaco, schema));
+
+    let disposable: { dispose(): void } | undefined;
+    getConfigFlags().then((flags) => {
+      disposable = registerCmdFlagProvider(monaco, flags);
+    });
+    return () => disposable?.dispose();
   }, [monaco]);
 
   if (loading) return <div className="p-10 text-text-secondary">Loading config...</div>;
