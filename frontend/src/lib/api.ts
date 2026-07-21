@@ -1,4 +1,10 @@
-import type { ApplyConfigResult, ConfigData, ConfigRevision, ConfigStatus } from "@/types/config";
+import type {
+  ApplyConfigResult,
+  ConfigData,
+  ConfigRevision,
+  ConfigStatus,
+  LlamaServerFlag,
+} from "@/types/config";
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
 
@@ -160,6 +166,10 @@ export async function getConfigStatus(): Promise<ConfigStatus> {
 
 export async function getConfigHistory(): Promise<ConfigRevision[]> {
   return request<ConfigRevision[]>("/api/config/history");
+}
+
+export async function getConfigFlags(): Promise<LlamaServerFlag[]> {
+  return request<LlamaServerFlag[]>("/api/config/flags");
 }
 
 export async function applyConfig(content: string, baseHash: string): Promise<ApplyConfigResult> {

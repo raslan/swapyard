@@ -80,3 +80,17 @@ async def post_config(body: ConfigApplyRequest) -> Response:
         raise InvalidConfigError("; ".join(e.errors)) from e
 
     return ConfigApplyResponse(status=result["status"], logs=result["logs"])
+
+
+import json as _json
+from pathlib import Path as _Path
+
+FLAGS_PATH: str = str(_Path(__file__).parent.parent / "llama_server_flags.json")
+
+
+@router.get("/flags")
+async def get_config_flags() -> list[dict]:
+    path = _Path(FLAGS_PATH)
+    if not path.exists():
+        return []
+    return _json.loads(path.read_text())

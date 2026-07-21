@@ -7,6 +7,7 @@ import {
   applyConfig,
   deleteManagedModel,
   getConfig,
+  getConfigFlags,
   getConfigHistory,
   getConfigSchema,
   getConfigStatus,
@@ -190,5 +191,20 @@ describe("applyConfig", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(applyConfig("bad: yaml\n", "abc")).rejects.toThrow(ConfigValidationError);
+  });
+});
+
+describe("getConfigFlags", () => {
+  it("fetches the flags list", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ flag: "--ngl", aliases: ["-ngl"], description: "layers", default: "0" }],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getConfigFlags();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/flags");
+    expect(result).toEqual([{ flag: "--ngl", aliases: ["-ngl"], description: "layers", default: "0" }]);
   });
 });
