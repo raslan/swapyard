@@ -26,6 +26,10 @@ import { getConfigSchema } from "@/lib/api";
 import { configureYamlSchema, setupMonacoEnvironment } from "@/lib/monacoWorkers";
 import { SWAPYARD_THEME_ID, THEME_OPTIONS, registerMonacoThemes } from "@/lib/monacoThemes";
 
+// Must run before any <Editor> mounts (React runs child effects before parent
+// effects, so a useEffect here would fire too late) - see monacoWorkers.ts.
+setupMonacoEnvironment();
+
 export function ConfigPage() {
   const {
     content,
@@ -45,10 +49,6 @@ export function ConfigPage() {
   const monaco = useMonaco();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [theme, setTheme] = useState(SWAPYARD_THEME_ID);
-
-  useEffect(() => {
-    setupMonacoEnvironment();
-  }, []);
 
   useEffect(() => {
     if (!monaco) return;

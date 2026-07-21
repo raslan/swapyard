@@ -27,6 +27,12 @@ export default defineConfig({
       },
     ],
   },
+  // Vite's dev-time dependency pre-bundler mishandles the `?worker` imports
+  // above (produces a chunk with no default export); excluding these from
+  // pre-bundling avoids it. Doesn't affect the production build.
+  optimizeDeps: {
+    exclude: ["monaco-editor", "monaco-yaml"],
+  },
   test: {
     environment: "jsdom",
     globals: true,
