@@ -1,7 +1,19 @@
 // frontend/src/lib/api.test.ts
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { deleteManagedModel, listManagedModels, searchModels, startDownload } from "./api";
+import {
+  ConfigConflictError,
+  ConfigValidationError,
+  applyConfig,
+  deleteManagedModel,
+  getConfig,
+  getConfigHistory,
+  getConfigSchema,
+  getConfigStatus,
+  listManagedModels,
+  searchModels,
+  startDownload,
+} from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -79,5 +91,104 @@ describe("startDownload", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ repo_id: "org/model", filename: "model.gguf", is_xet: true }),
     });
+  });
+});
+
+describe("getConfig", () => {
+  it("fetches content and hash", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ content: "models: {}\n", hash: "abc" }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getConfig();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config");
+    expect(result).toEqual({ content: "models: {}\n", hash: "abc" });
+  });
+});
+
+describe("getConfigSchema", () => {
+  it("fetches the raw schema object", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ title: "x" }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getConfigSchema();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/schema");
+    expect(result).toEqual({ title: "x" });
+  });
+});
+
+describe("getConfigStatus", () => {
+  it("fetches status", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ status: "ok", timestamp: 123 }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getConfigStatus();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/status");
+    expect(result).toEqual({ status: "ok", timestamp: 123 });
+  });
+});
+
+describe("getConfigHistory", () => {
+  it("fetches the revision list", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ sha: "abc", timestamp: 1, status: "ok", content: "models: {}\n" }],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getConfigHistory();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/history");
+    expect(result).toEqual([{ sha: "abc", timestamp: 1, status: "ok", content: "models: {}\n" }]);
+  });
+});
+
+describe("applyConfig", () => {
+  it("posts content and base_hash, returns the result on success", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "unverified", logs: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await applyConfig("models: {}\n", "abc");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "models: {}\n", base_hash: "abc" }),
+    });
+    expect(result).toEqual({ status: "unverified", logs: null });
+  });
+
+  it("throws ConfigConflictError with disk content on 409", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ current_content: "models: {}\n", current_hash: "xyz" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(applyConfig("models: {a: 1}\n", "stale")).rejects.toBeInstanceOf(
+      ConfigConflictError,
+    );
+  });
+
+  it("throws ConfigValidationError with the error message on 422", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({ error: { code: "invalid_config", message: "models: is required" } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(applyConfig("bad: yaml\n", "abc")).rejects.toThrow(ConfigValidationError);
   });
 });

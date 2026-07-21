@@ -1,3 +1,4 @@
+import type { ApplyConfigResult, ConfigData, ConfigRevision, ConfigStatus } from "@/types/config";
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
 
@@ -130,4 +131,54 @@ export function subscribeToDownload(
   });
 
   return () => source.close();
+}
+
+export class ConfigConflictError extends Error {
+  diskContent: string;
+  diskHash: string;
+
+  constructor(diskContent: string, diskHash: string) {
+    super("config changed on disk since it was loaded");
+    this.diskContent = diskContent;
+    this.diskHash = diskHash;
+  }
+}
+
+export class ConfigValidationError extends Error {}
+
+export async function getConfig(): Promise<ConfigData> {
+  return request<ConfigData>("/api/config");
+}
+
+export async function getConfigSchema(): Promise<object> {
+  return request<object>("/api/config/schema");
+}
+
+export async function getConfigStatus(): Promise<ConfigStatus> {
+  return request<ConfigStatus>("/api/config/status");
+}
+
+export async function getConfigHistory(): Promise<ConfigRevision[]> {
+  return request<ConfigRevision[]>("/api/config/history");
+}
+
+export async function applyConfig(content: string, baseHash: string): Promise<ApplyConfigResult> {
+  const resp = await fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content, base_hash: baseHash }),
+  });
+
+  if (resp.status === 409) {
+    const body = await resp.json();
+    throw new ConfigConflictError(body.current_content, body.current_hash);
+  }
+  if (resp.status === 422) {
+    const body = await resp.json();
+    throw new ConfigValidationError(body.error.message);
+  }
+  if (!resp.ok) {
+    throw new Error(`Request to /api/config failed with ${resp.status}`);
+  }
+  return (await resp.json()) as ApplyConfigResult;
 }
