@@ -6,6 +6,11 @@ import { loader } from "@monaco-editor/react";
 // import brings in only the base editor, which is all this app's YAML-only
 // editor needs.
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
+// editor.api alone registers no languages at all - not even syntax
+// highlighting. This side-effect import registers the YAML language +
+// monarch tokenizer (the narrow per-language equivalent of what the full
+// "monaco-editor" package root would pull in for every bundled language).
+import "monaco-editor/esm/vs/languages/definitions/yaml/register";
 import type * as Monaco from "monaco-editor";
 import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import { configureMonacoYaml } from "monaco-yaml";
