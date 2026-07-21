@@ -136,7 +136,7 @@ async def _verify_health(
         return False, logs
 
 
-def apply_config(
+async def apply_config(
     config_path: str,
     history_dir: str,
     content: str,
@@ -160,9 +160,7 @@ def apply_config(
         commit_revision(history_dir, content, "unverified")
         return {"status": "unverified", "logs": None}
 
-    healthy, logs = asyncio.run(
-        _verify_health(llama_swap_url, health_poll_interval, health_poll_attempts)
-    )
+    healthy, logs = await _verify_health(llama_swap_url, health_poll_interval, health_poll_attempts)
     if healthy:
         commit_revision(history_dir, content, "ok")
         return {"status": "ok", "logs": None}

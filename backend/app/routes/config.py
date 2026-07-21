@@ -64,7 +64,7 @@ async def get_config_history() -> list[ConfigRevisionResponse]:
 @router.post("")
 async def post_config(body: ConfigApplyRequest) -> Response:
     try:
-        result = apply_config(
+        result = await apply_config(
             config_path=CONFIG_PATH,
             history_dir=HISTORY_DIR,
             content=body.content,

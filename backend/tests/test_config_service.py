@@ -80,13 +80,13 @@ def test_get_status_reflects_latest_commit(tmp_path):
     assert isinstance(status["timestamp"], float)
 
 
-def test_apply_config_raises_conflict_when_base_hash_is_stale(tmp_path):
+async def test_apply_config_raises_conflict_when_base_hash_is_stale(tmp_path):
     config_file = tmp_path / "config.yaml"
     config_file.write_text("models: {}\n")
     history_dir = str(tmp_path / "history")
 
     with pytest.raises(ConfigConflict) as exc_info:
-        apply_config(
+        await apply_config(
             config_path=str(config_file),
             history_dir=history_dir,
             content="models: {a: 1}\n",
@@ -98,13 +98,13 @@ def test_apply_config_raises_conflict_when_base_hash_is_stale(tmp_path):
     assert config_file.read_text() == "models: {}\n"
 
 
-def test_apply_config_raises_invalid_for_bad_schema(tmp_path):
+async def test_apply_config_raises_invalid_for_bad_schema(tmp_path):
     config_file = tmp_path / "config.yaml"
     config_file.write_text("models: {}\n")
     history_dir = str(tmp_path / "history")
 
     with pytest.raises(ConfigInvalid) as exc_info:
-        apply_config(
+        await apply_config(
             config_path=str(config_file),
             history_dir=history_dir,
             content="healthCheckTimeout: 900\n",
@@ -115,12 +115,12 @@ def test_apply_config_raises_invalid_for_bad_schema(tmp_path):
     assert config_file.read_text() == "models: {}\n"  # untouched
 
 
-def test_apply_config_writes_and_returns_unverified_without_llama_swap_url(tmp_path):
+async def test_apply_config_writes_and_returns_unverified_without_llama_swap_url(tmp_path):
     config_file = tmp_path / "config.yaml"
     config_file.write_text("models: {}\n")
     history_dir = str(tmp_path / "history")
 
-    result = apply_config(
+    result = await apply_config(
         config_path=str(config_file),
         history_dir=history_dir,
         content="models: {a: {cmd: llama-server}}\n",
@@ -132,7 +132,7 @@ def test_apply_config_writes_and_returns_unverified_without_llama_swap_url(tmp_p
     assert config_file.read_text() == "models: {a: {cmd: llama-server}}\n"
 
 
-def test_apply_config_returns_ok_when_health_check_succeeds(tmp_path, monkeypatch):
+async def test_apply_config_returns_ok_when_health_check_succeeds(tmp_path, monkeypatch):
     config_file = tmp_path / "config.yaml"
     config_file.write_text("models: {}\n")
     history_dir = str(tmp_path / "history")
@@ -145,7 +145,7 @@ def test_apply_config_returns_ok_when_health_check_succeeds(tmp_path, monkeypatc
 
     monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
 
-    result = apply_config(
+    result = await apply_config(
         config_path=str(config_file),
         history_dir=history_dir,
         content="models: {a: {cmd: llama-server}}\n",
@@ -156,7 +156,7 @@ def test_apply_config_returns_ok_when_health_check_succeeds(tmp_path, monkeypatc
     assert result["status"] == "ok"
 
 
-def test_apply_config_returns_failed_status_when_health_check_never_succeeds(tmp_path, monkeypatch):
+async def test_apply_config_returns_failed_status_when_health_check_never_succeeds(tmp_path, monkeypatch):
     config_file = tmp_path / "config.yaml"
     config_file.write_text("models: {}\n")
     history_dir = str(tmp_path / "history")
@@ -176,7 +176,7 @@ def test_apply_config_returns_failed_status_when_health_check_never_succeeds(tmp
 
     monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
 
-    result = apply_config(
+    result = await apply_config(
         config_path=str(config_file),
         history_dir=history_dir,
         content="models: {a: {cmd: llama-server}}\n",

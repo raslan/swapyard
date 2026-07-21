@@ -4,4 +4,15 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ~/.cache/huggingface/hub:/root/.cache/huggingface/hub
+      - ~/.cache/huggingface/hub:/home/app/.cache/huggingface/hub
+      # llama-swap's config.yaml, edited in place by Swapyard's config editor.
+      # llama-swap must run with --watch-config to pick up changes.
+      - ./config.yaml:/app/llama-swap-config.yaml
+      # Config revision history (git-backed). Its own dedicated mount, never
+      # nested inside the HF cache dir above - that dir's contract is "safe
+      # to delete", which the history must not inherit.
+      - ./data:/app/data
+    # environment:
+    #   # Optional: enables health-verification after each config apply.
+    #   # Point this at wherever llama-swap's REST API is reachable.
+    #   - LLAMA_SWAP_URL=http://llama-swap:8080
