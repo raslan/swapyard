@@ -1,3 +1,11 @@
+# ---- Stage: extract llama-server flags (discarded) ----
+# This image's ENTRYPOINT is already /app/llama-server, so --help goes
+# straight to it - passing the binary path explicitly as an arg instead
+# fails with "invalid argument" (verified via
+# `docker run --rm ghcr.io/ggml-org/llama.cpp:server --help`).
+FROM ghcr.io/ggml-org/llama.cpp:server AS flags-extract
+RUN /app/llama-server --help > /tmp/llama-server-help.txt 2>&1 || true
+
 # ---- Stage 1: build frontend (discarded) ----
 FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
@@ -18,6 +26,9 @@ COPY backend/pyproject.toml backend/uv.lock ./backend/
 RUN cd backend && uv sync --no-dev --frozen
 
 COPY backend/app ./backend/app
+COPY --from=flags-extract /tmp/llama-server-help.txt /tmp/llama-server-help.txt
+COPY scripts/parse_llama_server_flags.py /tmp/parse_llama_server_flags.py
+RUN python3 /tmp/parse_llama_server_flags.py < /tmp/llama-server-help.txt > /app/backend/app/llama_server_flags.json
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 RUN mkdir -p /home/app/.cache/huggingface/hub && chown -R app:app /app /home/app
