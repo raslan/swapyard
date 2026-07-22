@@ -8,11 +8,26 @@ export function useVramEstimate(repoId: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    getVramEstimate(repoId)
-      .then(setEstimate)
-      .catch(() => setEstimate([]))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      getVramEstimate(repoId)
+        .then((data) => {
+          if (!cancelled) setEstimate(data);
+        })
+        .catch(() => {
+          if (!cancelled) setEstimate([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [repoId]);
 
   return { estimate, loading };

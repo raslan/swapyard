@@ -49,7 +49,7 @@ export function SettingsPage() {
             await save(parsed);
             setError(null);
             setSaved(true);
-          } catch (err) {
+          } catch {
             setError("Failed to save settings. Please try again.");
           }
         }}
