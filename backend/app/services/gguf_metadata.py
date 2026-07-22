@@ -28,6 +28,14 @@ _SCALAR_FORMATS = {
 _INITIAL_RANGE_BYTES = 10 * 1024 * 1024
 _RETRY_RANGE_BYTES = 50 * 1024 * 1024
 
+# Real GGUF files never nest arrays anywhere near this deep. This is purely a
+# hostile-input guard: without it, a maliciously crafted file with deeply
+# nested arrays could exceed Python's recursion limit and raise
+# RecursionError instead of the module's own GgufParseError, escaping the
+# "never raise all the way to an unhandled 500" contract of the VRAM
+# estimate pipeline.
+_MAX_ARRAY_NESTING_DEPTH = 32
+
 
 class GgufParseError(Exception):
     pass
@@ -58,13 +66,15 @@ class _Cursor:
         length = self.read_uint64()
         return self.read(length).decode("utf-8", errors="replace")
 
-    def read_value(self, value_type: int) -> Any:
+    def read_value(self, value_type: int, depth: int = 0) -> Any:
         if value_type == _STRING:
             return self.read_string()
         if value_type == _ARRAY:
+            if depth >= _MAX_ARRAY_NESTING_DEPTH:
+                raise GgufParseError("GGUF array nesting too deep")
             elem_type = self.read_uint32()
             length = self.read_uint64()
-            return [self.read_value(elem_type) for _ in range(length)]
+            return [self.read_value(elem_type, depth + 1) for _ in range(length)]
         fmt = _SCALAR_FORMATS.get(value_type)
         if fmt is None:
             raise GgufParseError(f"unknown GGUF value type {value_type}")

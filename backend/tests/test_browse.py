@@ -10,6 +10,7 @@ from app.services.browse import (
     _fetch_readme,
     _fetch_xet_filenames,
     get_model_detail,
+    list_gguf_files,
     search_models,
 )
 from app.services.manage import list_managed_models
@@ -105,6 +106,63 @@ def test_get_model_detail_happy_path(mock_hf_api_cls, mock_fetch_readme, mock_fe
     assert files_by_name["model.Q4_K_M.gguf"].is_xet is True
     assert files_by_name["mmproj-model-f16.gguf"].category == "mmproj"
     assert files_by_name["mmproj-model-f16.gguf"].is_xet is False
+    assert files_by_name["tokenizer_config.json"].category == "other"
+
+
+@patch("app.services.browse.HfApi")
+def test_list_gguf_files_not_found_raises(mock_hf_api_cls):
+    mock_api = MagicMock()
+    mock_hf_api_cls.return_value = mock_api
+    mock_api.model_info.side_effect = _http_error(RepositoryNotFoundError, 404, "404 Client Error")
+
+    with pytest.raises(NotFoundError):
+        list_gguf_files("missing/repo")
+
+
+@patch("app.services.browse.HfApi")
+def test_list_gguf_files_upstream_error_on_other_http_failure(mock_hf_api_cls):
+    mock_api = MagicMock()
+    mock_hf_api_cls.return_value = mock_api
+    mock_api.model_info.side_effect = _http_error(HfHubHTTPError, 503, "503 Server Error")
+
+    with pytest.raises(UpstreamError):
+        list_gguf_files("some/repo")
+
+
+@patch("app.services.browse._fetch_xet_filenames")
+@patch("app.services.browse._fetch_readme")
+@patch("app.services.browse.HfApi")
+def test_list_gguf_files_skips_readme_and_xet_lookup(mock_hf_api_cls, mock_fetch_readme, mock_fetch_xet):
+    mock_api = MagicMock()
+    mock_hf_api_cls.return_value = mock_api
+
+    siblings = [
+        MagicMock(rfilename="model.Q4_K_M.gguf", size=1000),
+        MagicMock(rfilename="mmproj-model-f16.gguf", size=200),
+        MagicMock(rfilename="tokenizer_config.json", size=50),
+        MagicMock(rfilename="model.safetensors", size=5000),
+    ]
+    mock_info = MagicMock(
+        id="org/model",
+        author="org",
+        downloads=123,
+        likes=45,
+        siblings=siblings,
+    )
+    mock_api.model_info.return_value = mock_info
+
+    files = list_gguf_files("org/model")
+
+    mock_fetch_readme.assert_not_called()
+    mock_fetch_xet.assert_not_called()
+
+    assert len(files) == 3
+    files_by_name = {f.name: f for f in files}
+    assert "model.safetensors" not in files_by_name
+    assert files_by_name["model.Q4_K_M.gguf"].category == "gguf"
+    assert files_by_name["model.Q4_K_M.gguf"].size == 1000
+    assert files_by_name["model.Q4_K_M.gguf"].is_xet is False
+    assert files_by_name["mmproj-model-f16.gguf"].category == "mmproj"
     assert files_by_name["tokenizer_config.json"].category == "other"
 
 

@@ -13,6 +13,7 @@ from app.services.gguf_metadata import (
 
 _UINT32 = 4
 _STRING = 8
+_ARRAY = 9
 
 
 def _pack_string(s: str) -> bytes:
@@ -58,6 +59,21 @@ def test_parse_gguf_header_raises_on_truncated_buffer():
     data = _build_gguf_header([_pack_kv_string("general.architecture", "llama")])
     with pytest.raises(GgufParseError):
         parse_gguf_header(data[: len(data) - 3])
+
+
+def test_parse_gguf_header_rejects_deeply_nested_arrays():
+    # Build a KV value that's an array-of-array-of-array... nested past the
+    # parser's depth guard, e.g. a hostile file trying to blow Python's
+    # recursion limit and raise RecursionError instead of GgufParseError.
+    nesting_levels = 40  # comfortably past the 32-level guard
+    nested_array_headers = b"".join(
+        struct.pack("<I", _ARRAY) + struct.pack("<Q", 1) for _ in range(nesting_levels)
+    )
+    kv_pair = _pack_string("evil.nested_array") + struct.pack("<I", _ARRAY) + nested_array_headers
+    data = _build_gguf_header([kv_pair])
+
+    with pytest.raises(GgufParseError, match="nesting too deep"):
+        parse_gguf_header(data)
 
 
 def test_extract_arch_info_reads_required_and_defaulted_keys():

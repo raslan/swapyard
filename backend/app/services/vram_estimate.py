@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 
-from app.services.browse import ModelFile, get_model_detail
+from app.services.browse import ModelFile, list_gguf_files
 from app.services.gguf_metadata import GgufParseError, extract_arch_info, fetch_gguf_header
 
 _SHARD_SUFFIX_RE = re.compile(r"-\d{5}-of-\d{5}(?=\.gguf$)", re.IGNORECASE)
@@ -40,8 +40,8 @@ def kv_cache_bytes(n_layer: int, n_head_kv: int, head_dim: int, context: int) ->
 
 
 def compute_vram_estimate(repo_id: str) -> list[QuantEstimate]:
-    detail = get_model_detail(repo_id)
-    groups = group_gguf_files(detail.files)
+    files = list_gguf_files(repo_id)
+    groups = group_gguf_files(files)
     if not groups:
         return []
 

@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from app.services.browse import ModelDetail, ModelFile
+from app.services.browse import ModelFile
 from app.services.gguf_metadata import GgufParseError
 from app.services.vram_estimate import (
     compute_vram_estimate,
@@ -37,19 +37,12 @@ def test_kv_cache_bytes_uses_q8_0_block_size():
 
 
 @patch("app.services.vram_estimate.fetch_gguf_header")
-@patch("app.services.vram_estimate.get_model_detail")
-def test_compute_vram_estimate_builds_one_entry_per_quant_group(mock_detail, mock_fetch):
-    mock_detail.return_value = ModelDetail(
-        repo_id="org/model",
-        author="org",
-        downloads=0,
-        likes=0,
-        readme="",
-        files=[
-            ModelFile(name="model-Q4_K_M.gguf", size=100, category="gguf"),
-            ModelFile(name="model-Q8_0.gguf", size=400, category="gguf"),
-        ],
-    )
+@patch("app.services.vram_estimate.list_gguf_files")
+def test_compute_vram_estimate_builds_one_entry_per_quant_group(mock_list_files, mock_fetch):
+    mock_list_files.return_value = [
+        ModelFile(name="model-Q4_K_M.gguf", size=100, category="gguf"),
+        ModelFile(name="model-Q8_0.gguf", size=400, category="gguf"),
+    ]
     mock_fetch.return_value = {
         "general.architecture": "llama",
         "llama.block_count": 2,
@@ -71,32 +64,18 @@ def test_compute_vram_estimate_builds_one_entry_per_quant_group(mock_detail, moc
 
 
 @patch("app.services.vram_estimate.fetch_gguf_header")
-@patch("app.services.vram_estimate.get_model_detail")
-def test_compute_vram_estimate_returns_empty_on_no_gguf_files(mock_detail, mock_fetch):
-    mock_detail.return_value = ModelDetail(
-        repo_id="org/model",
-        author="org",
-        downloads=0,
-        likes=0,
-        readme="",
-        files=[ModelFile(name="tokenizer.json", size=10, category="other")],
-    )
+@patch("app.services.vram_estimate.list_gguf_files")
+def test_compute_vram_estimate_returns_empty_on_no_gguf_files(mock_list_files, mock_fetch):
+    mock_list_files.return_value = [ModelFile(name="tokenizer.json", size=10, category="other")]
 
     assert compute_vram_estimate("org/model") == []
     mock_fetch.assert_not_called()
 
 
 @patch("app.services.vram_estimate.fetch_gguf_header")
-@patch("app.services.vram_estimate.get_model_detail")
-def test_compute_vram_estimate_returns_empty_on_gguf_parse_failure(mock_detail, mock_fetch):
-    mock_detail.return_value = ModelDetail(
-        repo_id="org/model",
-        author="org",
-        downloads=0,
-        likes=0,
-        readme="",
-        files=[ModelFile(name="model-Q4_K_M.gguf", size=100, category="gguf")],
-    )
+@patch("app.services.vram_estimate.list_gguf_files")
+def test_compute_vram_estimate_returns_empty_on_gguf_parse_failure(mock_list_files, mock_fetch):
+    mock_list_files.return_value = [ModelFile(name="model-Q4_K_M.gguf", size=100, category="gguf")]
     mock_fetch.side_effect = GgufParseError("bad magic")
 
     assert compute_vram_estimate("org/model") == []

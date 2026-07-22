@@ -110,6 +110,37 @@ def get_model_detail(repo_id: str) -> ModelDetail:
     )
 
 
+def list_gguf_files(repo_id: str) -> list[ModelFile]:
+    """Lightweight file listing for the VRAM estimator.
+
+    Like get_model_detail, but skips the README fetch and the Xet-filename
+    lookup - the VRAM estimate only needs filenames/sizes/categories, so
+    fetching+discarding a full README and doing an extra HF tree-API round
+    trip on every estimate is wasted work (the frontend already calls
+    get_model_detail separately via /models/{repo_id} for the Files tab).
+    """
+    api = HfApi()
+    try:
+        info = api.model_info(repo_id, files_metadata=True)
+    except RepositoryNotFoundError as exc:
+        raise NotFoundError(f"model '{repo_id}' not found") from exc
+    except HfHubHTTPError as exc:
+        raise UpstreamError(f"failed to reach Hugging Face: {exc}") from exc
+
+    files = []
+    for sibling in info.siblings or []:
+        category = _categorize_file(sibling.rfilename)
+        if category is not None:
+            files.append(
+                ModelFile(
+                    name=sibling.rfilename,
+                    size=sibling.size or 0,
+                    category=category,
+                )
+            )
+    return files
+
+
 def _fetch_xet_filenames(repo_id: str) -> set[str]:
     """Which files in a repo are stored on HF's Xet backend.
 
