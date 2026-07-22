@@ -30,5 +30,7 @@ export function formatEta(remainingBytes: number, bytesPerSec: number): string {
 export function formatQuantLabel(filename: string): string {
   const stem = filename.replace(/\.gguf$/, "");
   const lastDot = stem.lastIndexOf(".");
-  return lastDot === -1 ? stem : stem.slice(lastDot + 1);
+  const lastDash = stem.lastIndexOf("-");
+  const lastSeparator = Math.max(lastDot, lastDash);
+  return lastSeparator === -1 ? stem : stem.slice(lastSeparator + 1);
 }
