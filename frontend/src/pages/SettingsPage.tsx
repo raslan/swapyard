@@ -1,3 +1,4 @@
+import { AlertCircle } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ export function SettingsPage() {
   const { settings, loading, save } = useSettings();
   const [draft, setDraft] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (loading) return <div className="p-10 text-text-secondary">Loading settings...</div>;
 
@@ -33,18 +35,33 @@ export function SettingsPage() {
         onChange={(e) => {
           setDraft(e.target.value);
           setSaved(false);
+          setError(null);
         }}
       />
       <Button
         onClick={async () => {
           const parsed = Number.parseFloat(value);
-          if (Number.isNaN(parsed) || parsed <= 0) return;
-          await save(parsed);
-          setSaved(true);
+          if (Number.isNaN(parsed) || parsed <= 0) {
+            setError("Enter a VRAM amount greater than 0.");
+            return;
+          }
+          try {
+            await save(parsed);
+            setError(null);
+            setSaved(true);
+          } catch (err) {
+            setError("Failed to save settings. Please try again.");
+          }
         }}
       >
         Save
       </Button>
+      {error && (
+        <p className="text-sm text-red-400 flex items-center gap-2 mt-3" role="alert">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {error}
+        </p>
+      )}
       {saved && <p className="text-sm text-success mt-3">Saved.</p>}
     </div>
   );

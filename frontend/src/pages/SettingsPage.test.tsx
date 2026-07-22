@@ -31,4 +31,75 @@ describe("SettingsPage", () => {
     await waitFor(() => expect(updateSpy).toHaveBeenCalledWith(12));
     await waitFor(() => expect(screen.getByText(/saved/i)).toBeInTheDocument());
   });
+
+  it("shows error message for invalid input (zero or negative) and does not call updateSettings", async () => {
+    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    const updateSpy = vi.spyOn(api, "updateSettings");
+    const user = userEvent.setup();
+
+    render(<SettingsPage />);
+    await waitFor(() => expect(screen.getByLabelText(/usable vram/i)).toBeInTheDocument());
+
+    await user.type(screen.getByLabelText(/usable vram/i), "0");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/enter a vram amount greater than 0/i)).toBeInTheDocument(),
+    );
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("shows error message for negative input and does not call updateSettings", async () => {
+    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    const updateSpy = vi.spyOn(api, "updateSettings");
+    const user = userEvent.setup();
+
+    render(<SettingsPage />);
+    await waitFor(() => expect(screen.getByLabelText(/usable vram/i)).toBeInTheDocument());
+
+    await user.type(screen.getByLabelText(/usable vram/i), "-5");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/enter a vram amount greater than 0/i)).toBeInTheDocument(),
+    );
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("shows error message when save fails", async () => {
+    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "updateSettings").mockRejectedValue(new Error("Network error"));
+    const user = userEvent.setup();
+
+    render(<SettingsPage />);
+    await waitFor(() => expect(screen.getByLabelText(/usable vram/i)).toBeInTheDocument());
+
+    await user.type(screen.getByLabelText(/usable vram/i), "12");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/failed to save settings/i)).toBeInTheDocument(),
+    );
+  });
+
+  it("clears error message when user edits the input", async () => {
+    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "updateSettings").mockRejectedValue(new Error("Network error"));
+    const user = userEvent.setup();
+
+    render(<SettingsPage />);
+    await waitFor(() => expect(screen.getByLabelText(/usable vram/i)).toBeInTheDocument());
+
+    await user.type(screen.getByLabelText(/usable vram/i), "0");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/enter a vram amount greater than 0/i)).toBeInTheDocument(),
+    );
+
+    await user.clear(screen.getByLabelText(/usable vram/i));
+    await user.type(screen.getByLabelText(/usable vram/i), "12");
+
+    expect(screen.queryByText(/enter a vram amount greater than 0/i)).not.toBeInTheDocument();
+  });
 });
