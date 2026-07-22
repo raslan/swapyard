@@ -9,7 +9,11 @@ from app.services.config import (
     get_status,
     hash_content,
     list_revisions,
+    model_ids_for_repo,
+    model_refs,
+    parse_cmd_model_ref,
     read_config,
+    remove_models_for_repo,
     validate_config,
 )
 
@@ -78,6 +82,105 @@ def test_get_status_reflects_latest_commit(tmp_path):
 
     assert status["status"] == "unverified"
     assert isinstance(status["timestamp"], float)
+
+
+def test_parse_cmd_model_ref_extracts_hf_repo_and_quant():
+    ref = parse_cmd_model_ref("llama-server -hf org/repo:Q4_K_M --ctx-size 4096")
+    assert ref == {"kind": "hf", "repo_id": "org/repo", "quant": "Q4_K_M"}
+
+
+def test_parse_cmd_model_ref_extracts_hf_repo_without_quant():
+    ref = parse_cmd_model_ref("llama-server --hf-repo org/repo")
+    assert ref == {"kind": "hf", "repo_id": "org/repo", "quant": None}
+
+
+def test_parse_cmd_model_ref_extracts_local_path():
+    ref = parse_cmd_model_ref("llama-server -m /models/foo.gguf")
+    assert ref == {"kind": "path", "path": "/models/foo.gguf"}
+
+
+def test_parse_cmd_model_ref_returns_none_when_no_model_flag_present():
+    assert parse_cmd_model_ref("llama-server --ctx-size 4096") is None
+
+
+def test_model_refs_maps_model_ids_to_their_download():
+    content = (
+        "models:\n"
+        "  a:\n"
+        "    cmd: llama-server -hf org/repo:Q4_K_M\n"
+        "  b:\n"
+        "    cmd: llama-server --ctx-size 4096\n"
+    )
+    assert model_refs(content) == {"a": {"kind": "hf", "repo_id": "org/repo", "quant": "Q4_K_M"}}
+
+
+def test_model_ids_for_repo_matches_only_hf_entries_for_that_repo():
+    content = (
+        "models:\n"
+        "  a:\n"
+        "    cmd: llama-server -hf org/repo:Q4_K_M\n"
+        "  b:\n"
+        "    cmd: llama-server -hf org/repo:Q8_0\n"
+        "  c:\n"
+        "    cmd: llama-server -hf other/repo\n"
+    )
+    assert model_ids_for_repo(content, "org/repo") == ["a", "b"]
+
+
+def test_remove_models_for_repo_deletes_matching_entries_and_preserves_comments():
+    content = (
+        "# top comment\n"
+        "models:\n"
+        "  a: # inline comment\n"
+        "    cmd: llama-server -hf org/repo:Q4_K_M\n"
+        "  b:\n"
+        "    cmd: llama-server -hf other/repo\n"
+    )
+
+    new_content, removed = remove_models_for_repo(content, "org/repo")
+
+    assert removed == ["a"]
+    assert "# top comment" in new_content
+    assert "# inline comment" not in new_content  # removed along with entry a
+    assert "a:" not in new_content
+    assert "b:" in new_content
+
+
+def test_model_ids_for_repo_matches_all_entries_sharing_one_repo_with_multiline_cmd():
+    # Real-world shape: block-scalar `cmd: |`, quoted args containing escaped
+    # newlines, macro refs like ${PORT} - two model entries (e.g. a "thinking" and
+    # "no-think" variant) both pointing at the same downloaded repo.
+    content = (
+        "models:\n"
+        "  qwen-a:\n"
+        '    proxy: "http://127.0.0.1:${PORT}"\n'
+        "    cmd: |\n"
+        "      llama-server\n"
+        "      --port ${PORT}\n"
+        "      -hf unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q4_K_M\n"
+        '      --reasoning-budget-message "Final Answer:\\nBased on my analysis, "\n'
+        "  qwen-b:\n"
+        "    cmd: |\n"
+        "      llama-server\n"
+        "      -hf unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q4_K_M\n"
+        "      --reasoning off\n"
+    )
+
+    assert model_ids_for_repo(content, "unsloth/Qwen3.6-35B-A3B-MTP-GGUF") == ["qwen-a", "qwen-b"]
+
+    new_content, removed = remove_models_for_repo(content, "unsloth/Qwen3.6-35B-A3B-MTP-GGUF")
+    assert removed == ["qwen-a", "qwen-b"]
+    assert "qwen-a" not in new_content
+    assert "qwen-b" not in new_content
+
+
+def test_remove_models_for_repo_is_noop_when_no_entries_match():
+    content = "models:\n  a:\n    cmd: llama-server -hf org/repo\n"
+
+    new_content, removed = remove_models_for_repo(content, "unrelated/repo")
+
+    assert removed == []
+    assert new_content == content
 
 
 async def test_apply_config_raises_conflict_when_base_hash_is_stale(tmp_path):

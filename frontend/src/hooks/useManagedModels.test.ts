@@ -10,7 +10,14 @@ afterEach(() => vi.restoreAllMocks());
 describe("useManagedModels", () => {
   it("loads models sorted by size by default", async () => {
     const spy = vi.spyOn(api, "listManagedModels").mockResolvedValue([
-      { repoId: "org/model", sizeOnDisk: 100, nbFiles: 1, lastModified: 1, ggufFiles: [] },
+      {
+        repoId: "org/model",
+        sizeOnDisk: 100,
+        nbFiles: 1,
+        lastModified: 1,
+        ggufFiles: [],
+        configEntries: [],
+      },
     ]);
 
     const { result } = renderHook(() => useManagedModels());
@@ -41,7 +48,21 @@ describe("useManagedModels", () => {
       await result.current.remove("org/model");
     });
 
-    expect(deleteSpy).toHaveBeenCalledWith("org/model");
+    expect(deleteSpy).toHaveBeenCalledWith("org/model", false);
     expect(listSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("remove() forwards removeConfigEntries through to delete", async () => {
+    vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
+    const deleteSpy = vi.spyOn(api, "deleteManagedModel").mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useManagedModels());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.remove("org/model", true);
+    });
+
+    expect(deleteSpy).toHaveBeenCalledWith("org/model", true);
   });
 });

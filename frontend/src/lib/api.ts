@@ -61,6 +61,7 @@ export async function listManagedModels(sort: "size" | "name"): Promise<ManagedM
       nb_files: number;
       last_modified: number;
       gguf_files: string[];
+      config_entries: string[];
     }[]
   >(`/api/manage/models?sort=${sort}`);
   return raw.map((m) => ({
@@ -69,11 +70,13 @@ export async function listManagedModels(sort: "size" | "name"): Promise<ManagedM
     nbFiles: m.nb_files,
     lastModified: m.last_modified,
     ggufFiles: m.gguf_files,
+    configEntries: m.config_entries,
   }));
 }
 
-export async function deleteManagedModel(repoId: string): Promise<void> {
-  await request<void>(`/api/manage/models/${repoId}`, { method: "DELETE" });
+export async function deleteManagedModel(repoId: string, removeConfigEntries = false): Promise<void> {
+  const query = removeConfigEntries ? "?remove_config_entries=true" : "";
+  await request<void>(`/api/manage/models/${repoId}${query}`, { method: "DELETE" });
 }
 
 export async function startDownload(

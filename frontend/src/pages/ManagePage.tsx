@@ -104,7 +104,10 @@ export function ManagePage() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               >
-                <ManageRow model={m} onDelete={() => remove(m.repoId)} />
+                <ManageRow
+                  model={m}
+                  onDelete={(removeConfigEntries) => remove(m.repoId, removeConfigEntries)}
+                />
               </motion.div>
             ))}
           </AnimatePresence>

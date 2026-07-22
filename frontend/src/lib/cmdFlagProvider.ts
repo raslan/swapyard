@@ -25,7 +25,7 @@ function findFlagAtOffset(content: string, offset: number): string | null {
   const lineStart = content.lastIndexOf("\n", offset - 1) + 1;
   const lineEnd = content.indexOf("\n", offset);
   const line = content.slice(lineStart, lineEnd === -1 ? content.length : lineEnd);
-  const match = line.match(/--[\w-]+/);
+  const match = line.match(/-{1,2}[\w-]+/);
   return match ? match[0] : null;
 }
 

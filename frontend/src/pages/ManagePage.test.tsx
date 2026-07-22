@@ -26,7 +26,14 @@ describe("ManagePage", () => {
 
   it("opens a confirmation dialog on delete click, without deleting immediately", async () => {
     vi.spyOn(api, "listManagedModels").mockResolvedValue([
-      { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 2, lastModified: 1, ggufFiles: [] },
+      {
+        repoId: "org/model",
+        sizeOnDisk: 1024,
+        nbFiles: 2,
+        lastModified: 1,
+        ggufFiles: [],
+        configEntries: [],
+      },
     ]);
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     const deleteSpy = vi.spyOn(api, "deleteManagedModel").mockResolvedValue(undefined);
@@ -44,15 +51,55 @@ describe("ManagePage", () => {
     const dialog = await screen.findByRole("alertdialog");
     expect(within(dialog).getByText(/delete this model/i)).toBeInTheDocument();
     expect(deleteSpy).not.toHaveBeenCalled();
+    expect(within(dialog).queryByRole("checkbox")).not.toBeInTheDocument();
 
     await user.click(within(dialog).getByRole("button", { name: /^delete$/i }));
 
-    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith("org/model"));
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith("org/model", false));
+  });
+
+  it("offers to also remove config entries referencing the model, and passes the choice through", async () => {
+    vi.spyOn(api, "listManagedModels").mockResolvedValue([
+      {
+        repoId: "org/model",
+        sizeOnDisk: 1024,
+        nbFiles: 2,
+        lastModified: 1,
+        ggufFiles: [],
+        configEntries: ["my-model", "my-model-nothink"],
+      },
+    ]);
+    vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
+    const deleteSpy = vi.spyOn(api, "deleteManagedModel").mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ManagePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText(/my-model, my-model-nothink/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("checkbox"));
+    await user.click(within(dialog).getByRole("button", { name: /^delete$/i }));
+
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledWith("org/model", true));
   });
 
   it("does not delete when the confirmation dialog is cancelled", async () => {
     vi.spyOn(api, "listManagedModels").mockResolvedValue([
-      { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 2, lastModified: 1, ggufFiles: [] },
+      {
+        repoId: "org/model",
+        sizeOnDisk: 1024,
+        nbFiles: 2,
+        lastModified: 1,
+        ggufFiles: [],
+        configEntries: [],
+      },
     ]);
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     const deleteSpy = vi.spyOn(api, "deleteManagedModel").mockResolvedValue(undefined);
@@ -76,7 +123,14 @@ describe("ManagePage", () => {
 
   it("re-sorts by name when the sort dropdown selection changes", async () => {
     const listModelsSpy = vi.spyOn(api, "listManagedModels").mockResolvedValue([
-      { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 2, lastModified: 1, ggufFiles: [] },
+      {
+        repoId: "org/model",
+        sizeOnDisk: 1024,
+        nbFiles: 2,
+        lastModified: 1,
+        ggufFiles: [],
+        configEntries: [],
+      },
     ]);
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     const user = userEvent.setup();
@@ -103,6 +157,7 @@ describe("ManagePage", () => {
         nbFiles: 2,
         lastModified: 1,
         ggufFiles: ["org-model.Q4_K_M.gguf", "org-model.Q8_0.gguf"],
+        configEntries: [],
       },
     ]);
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
@@ -178,7 +233,14 @@ describe("ManagePage", () => {
       .spyOn(api, "listManagedModels")
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
-        { repoId: "org/model", sizeOnDisk: 1024, nbFiles: 1, lastModified: 1, ggufFiles: [] },
+        {
+          repoId: "org/model",
+          sizeOnDisk: 1024,
+          nbFiles: 1,
+          lastModified: 1,
+          ggufFiles: [],
+          configEntries: [],
+        },
       ]);
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([
       {

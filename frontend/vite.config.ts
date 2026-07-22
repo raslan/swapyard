@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: "@", replacement: path.resolve(__dirname, "./src") },
-      // monaco-editor@0.56's package.json "exports" map only defines a bare
+      // monaco-editor's package.json "exports" map only defines a bare
       // "./*" -> "./esm/vs/*.js" wildcard. Callers (including monaco-yaml's own
       // monaco-worker-manager dependency, and our own worker setup below) import
       // using the pre-exports-map convention "monaco-editor/esm/vs/...", which

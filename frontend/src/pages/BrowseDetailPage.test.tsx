@@ -146,6 +146,7 @@ describe("BrowseDetailPage", () => {
         nbFiles: 1,
         lastModified: 1,
         ggufFiles: ["model.Q4.gguf"],
+        configEntries: [],
       },
     ]);
 

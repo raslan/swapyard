@@ -22,8 +22,8 @@ export function useManagedModels() {
   }, [sort, refetch]);
 
   const remove = useCallback(
-    async (repoId: string) => {
-      await deleteManagedModel(repoId);
+    async (repoId: string, removeConfigEntries = false) => {
+      await deleteManagedModel(repoId, removeConfigEntries);
       await refetch(sort);
     },
     [refetch, sort],

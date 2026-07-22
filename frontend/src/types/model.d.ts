@@ -28,4 +28,5 @@ export interface ManagedModel {
   nbFiles: number;
   lastModified: number;
   ggufFiles: string[];
+  configEntries: string[];
 }

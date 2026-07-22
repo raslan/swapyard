@@ -1,4 +1,5 @@
 import { Trash2, X, Zap } from "lucide-react";
+import { useState } from "react";
 
 import {
   AlertDialog,
@@ -12,12 +13,22 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { formatEta, formatQuantLabel, formatSize, formatSpeed } from "@/lib/format";
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel } from "@/types/model";
 
-export function ManageRow({ model, onDelete }: { model: ManagedModel; onDelete: () => void }) {
+export function ManageRow({
+  model,
+  onDelete,
+}: {
+  model: ManagedModel;
+  onDelete: (removeConfigEntries: boolean) => void;
+}) {
+  const [removeConfigEntries, setRemoveConfigEntries] = useState(false);
+  const hasConfigEntries = model.configEntries.length > 0;
+
   return (
     <div className="manage-row p-5">
       <div className="flex items-center justify-between">
@@ -27,7 +38,7 @@ export function ManageRow({ model, onDelete }: { model: ManagedModel; onDelete: 
             {formatSize(model.sizeOnDisk)} · {model.nbFiles} files
           </p>
         </div>
-        <AlertDialog>
+        <AlertDialog onOpenChange={(open) => !open && setRemoveConfigEntries(false)}>
           <AlertDialogTrigger asChild>
             <Button variant="ghost" size="sm" className="text-danger">
               <Trash2 className="w-4 h-4" />
@@ -45,11 +56,26 @@ export function ManageRow({ model, onDelete }: { model: ManagedModel; onDelete: 
                 it closes or restarts.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            {hasConfigEntries && (
+              <label className="flex items-start gap-2.5 text-sm text-text-secondary">
+                <Checkbox
+                  checked={removeConfigEntries}
+                  onCheckedChange={(v) => setRemoveConfigEntries(v === true)}
+                  className="mt-0.5"
+                />
+                <span>
+                  Also remove config.yaml{" "}
+                  {model.configEntries.length === 1 ? "entry" : `entries (${model.configEntries.length})`}{" "}
+                  referencing this model:{" "}
+                  <span className="font-mono">{model.configEntries.join(", ")}</span>
+                </span>
+              </label>
+            )}
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-white hover:bg-destructive/90"
-                onClick={onDelete}
+                onClick={() => onDelete(removeConfigEntries)}
               >
                 Delete
               </AlertDialogAction>

@@ -1,9 +1,12 @@
 import hashlib
+import io
 import json
+import shlex
 from pathlib import Path
 
 import yaml
 from jsonschema import Draft7Validator
+from ruamel.yaml import YAML
 
 
 def hash_content(content: str) -> str:
@@ -34,6 +37,70 @@ def validate_config(content: str) -> list[str]:
     return [
         f"{'.'.join(str(p) for p in e.path) or '(root)'}: {e.message}" for e in errors
     ]
+
+
+_MODEL_FLAGS = {"-hf", "--hf-repo"}
+_PATH_FLAGS = {"-m", "--model"}
+
+
+def parse_cmd_model_ref(cmd: str) -> dict | None:
+    """Extract which downloaded model a model entry's `cmd` points at, if any."""
+    try:
+        tokens = shlex.split(cmd)
+    except ValueError:
+        return None
+    for i, tok in enumerate(tokens[:-1]):
+        if tok in _MODEL_FLAGS:
+            repo_id, _, quant = tokens[i + 1].partition(":")
+            return {"kind": "hf", "repo_id": repo_id, "quant": quant or None}
+        if tok in _PATH_FLAGS:
+            return {"kind": "path", "path": tokens[i + 1]}
+    return None
+
+
+def model_refs(content: str) -> dict[str, dict]:
+    """Map each config model id to the download it references, for entries that have one."""
+    try:
+        data = yaml.safe_load(content)
+    except yaml.YAMLError:
+        return {}
+    models = (data or {}).get("models") or {}
+    refs = {}
+    for model_id, model_cfg in models.items():
+        cmd = (model_cfg or {}).get("cmd")
+        if not cmd:
+            continue
+        ref = parse_cmd_model_ref(cmd)
+        if ref:
+            refs[model_id] = ref
+    return refs
+
+
+def model_ids_for_repo(content: str, repo_id: str) -> list[str]:
+    return [
+        model_id
+        for model_id, ref in model_refs(content).items()
+        if ref["kind"] == "hf" and ref["repo_id"] == repo_id
+    ]
+
+
+_RUAMEL_YAML = YAML()
+_RUAMEL_YAML.preserve_quotes = True
+
+
+def remove_models_for_repo(content: str, repo_id: str) -> tuple[str, list[str]]:
+    """Delete model entries whose cmd references `repo_id`, preserving comments/formatting."""
+    to_remove = model_ids_for_repo(content, repo_id)
+    if not to_remove:
+        return content, []
+
+    data = _RUAMEL_YAML.load(content)
+    for model_id in to_remove:
+        del data["models"][model_id]
+
+    out = io.StringIO()
+    _RUAMEL_YAML.dump(data, out)
+    return out.getvalue(), to_remove
 
 
 from dulwich import porcelain

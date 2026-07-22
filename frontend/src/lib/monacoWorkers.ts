@@ -1,16 +1,11 @@
 import { loader } from "@monaco-editor/react";
-// The bare "monaco-editor" package root eagerly registers every bundled
-// language (JSON, TypeScript, CSS, HTML, ...), each expecting its own worker -
-// our getWorker below only implements "yaml", so those languages spam
-// "Missing requestHandler" console errors and bloat the bundle. This narrower
-// import brings in only the base editor, which is all this app's YAML-only
-// editor needs.
+// Narrow imports (not the "monaco-editor" package root) to avoid every bundled
+// language spamming worker errors - editor.api (base), editor.all (contributions:
+// hover/suggest/etc), and just the yaml language. monaco-editor pinned at exactly
+// 0.52.2, not latest - see HISTORY.md for both.
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
-// editor.api alone registers no languages at all - not even syntax
-// highlighting. This side-effect import registers the YAML language +
-// monarch tokenizer (the narrow per-language equivalent of what the full
-// "monaco-editor" package root would pull in for every bundled language).
-import "monaco-editor/esm/vs/languages/definitions/yaml/register";
+import "monaco-editor/esm/vs/editor/editor.all";
+import "monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution";
 import type * as Monaco from "monaco-editor";
 import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import { configureMonacoYaml } from "monaco-yaml";
