@@ -90,4 +90,14 @@ describe("Sidebar", () => {
 
     await waitFor(() => expect(screen.getByTestId("config-nav-badge")).toBeInTheDocument());
   });
+
+  it("renders a Settings nav link pointing at /settings", () => {
+    render(
+      <MemoryRouter initialEntries={["/browse"]}>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+    const link = screen.getByRole("link", { name: /settings/i });
+    expect(link).toHaveAttribute("href", "/settings");
+  });
 });

@@ -1,4 +1,4 @@
-import { Anchor, Compass, HardDrive, PanelLeftClose, Settings2 } from "lucide-react";
+import { Anchor, Compass, HardDrive, PanelLeftClose, Settings2, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -91,6 +91,15 @@ export function Sidebar() {
               className="ml-auto w-2 h-2 rounded-full bg-red-500 shrink-0"
             />
           )}
+        </NavLink>
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            `sidebar-item flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium ${isActive ? "active text-text-primary" : "text-text-muted"}`
+          }
+        >
+          <SlidersHorizontal className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Settings</span>}
         </NavLink>
       </nav>
     </aside>
