@@ -110,12 +110,15 @@ def fetch_gguf_header(repo_id: str, filename: str) -> dict[str, Any]:
 
     last_error: GgufParseError | None = None
     for range_bytes in (_INITIAL_RANGE_BYTES, _RETRY_RANGE_BYTES):
-        resp = httpx.get(
-            url,
-            headers={**headers, "Range": f"bytes=0-{range_bytes - 1}"},
-            follow_redirects=True,
-        )
-        resp.raise_for_status()
+        try:
+            resp = httpx.get(
+                url,
+                headers={**headers, "Range": f"bytes=0-{range_bytes - 1}"},
+                follow_redirects=True,
+            )
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise GgufParseError(f"failed to fetch {repo_id}/{filename}: {exc}") from exc
         if resp.status_code != 206:
             raise GgufParseError("server did not honor Range request, refusing to download full file")
         try:

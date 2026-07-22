@@ -155,3 +155,27 @@ def test_fetch_gguf_header_rejects_unhonored_range_request(monkeypatch):
 
     with pytest.raises(GgufParseError, match="server did not honor Range request"):
         fetch_gguf_header("org/model", "model.gguf")
+
+
+def test_fetch_gguf_header_converts_httpx_get_error_to_gguf_parse_error(monkeypatch):
+    # Mock httpx.get to raise a network error (e.g., connection refused)
+    def fake_get(url, headers=None, follow_redirects=False):
+        raise httpx.ConnectError("connection refused")
+
+    monkeypatch.setattr("app.services.gguf_metadata.httpx.get", fake_get)
+
+    with pytest.raises(GgufParseError, match="failed to fetch org/model/model.gguf"):
+        fetch_gguf_header("org/model", "model.gguf")
+
+
+def test_fetch_gguf_header_converts_raise_for_status_error_to_gguf_parse_error(monkeypatch):
+    # Mock httpx.get to return a response that will fail raise_for_status
+    def fake_get(url, headers=None, follow_redirects=False):
+        request = httpx.Request("GET", url)
+        # Return 404, which will cause raise_for_status to raise HTTPStatusError
+        return httpx.Response(404, request=request)
+
+    monkeypatch.setattr("app.services.gguf_metadata.httpx.get", fake_get)
+
+    with pytest.raises(GgufParseError, match="failed to fetch org/model/model.gguf"):
+        fetch_gguf_header("org/model", "model.gguf")
