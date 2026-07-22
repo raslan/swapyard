@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { QuantGroup } from "./QuantGroup";
 
 const estimate = {
-  quant: "Q4_K_M",
+  quant: "model-Q4_K_M.gguf",
   files: ["model-Q4_K_M.gguf"],
   weightBytes: 4_000_000_000,
   contextLength: 8192,
@@ -12,7 +12,7 @@ const estimate = {
   kvCacheHalfBytes: 250_000_000,
 };
 
-const files = [{ name: "model.gguf", size: 4_000_000_000, category: "gguf" as const, isXet: false }];
+const files = [{ name: "model-Q4_K_M.gguf", size: 4_000_000_000, category: "gguf" as const, isXet: false }];
 
 describe("QuantGroup", () => {
   it("shows the quant label and estimate at max and half context", () => {
@@ -20,7 +20,7 @@ describe("QuantGroup", () => {
       <QuantGroup estimate={estimate} files={files} fits={false} fileStatus={() => "none"} onDownload={vi.fn()} />,
     );
 
-    expect(screen.getByText(/Q4_K_M/)).toBeInTheDocument();
+    expect(screen.getByText("Q4_K_M", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/8\.2K ctx/)).toBeInTheDocument();
     expect(screen.getByText(/4\.1K ctx/)).toBeInTheDocument();
   });
