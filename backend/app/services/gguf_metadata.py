@@ -116,6 +116,8 @@ def fetch_gguf_header(repo_id: str, filename: str) -> dict[str, Any]:
             follow_redirects=True,
         )
         resp.raise_for_status()
+        if resp.status_code != 206:
+            raise GgufParseError("server did not honor Range request, refusing to download full file")
         try:
             return parse_gguf_header(resp.content)
         except GgufParseError as exc:

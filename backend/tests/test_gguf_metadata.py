@@ -142,3 +142,16 @@ def test_fetch_gguf_header_retries_with_larger_range_on_truncation(monkeypatch):
 
     assert result["llama.block_count"] == 32
     assert len(calls) == 2
+
+
+def test_fetch_gguf_header_rejects_unhonored_range_request(monkeypatch):
+    # Mock server that ignores Range and returns full file with 200 status
+    def fake_get(url, headers=None, follow_redirects=False):
+        request = httpx.Request("GET", url)
+        # Return 200 instead of 206, simulating server ignoring Range header
+        return httpx.Response(200, content=b"x" * 100 * 1024 * 1024, request=request)
+
+    monkeypatch.setattr("app.services.gguf_metadata.httpx.get", fake_get)
+
+    with pytest.raises(GgufParseError, match="server did not honor Range request"):
+        fetch_gguf_header("org/model", "model.gguf")
