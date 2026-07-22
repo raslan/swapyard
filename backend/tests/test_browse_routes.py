@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.browse import ModelDetail, ModelFile, ModelSummary
+from app.services.vram_estimate import QuantEstimate
 
 client = TestClient(app)
 
@@ -33,3 +34,25 @@ def test_model_detail_route(mock_detail):
     body = resp.json()
     assert body["readme"] == "# Hello"
     assert body["files"][0]["category"] == "gguf"
+
+
+@patch("app.routes.browse.compute_vram_estimate")
+def test_vram_estimate_route(mock_compute):
+    mock_compute.return_value = [
+        QuantEstimate(
+            quant="model-Q4_K_M.gguf",
+            files=["model-Q4_K_M.gguf"],
+            weight_bytes=4_000_000_000,
+            context_length=8192,
+            kv_cache_max_bytes=500_000_000,
+            kv_cache_half_bytes=250_000_000,
+        )
+    ]
+
+    resp = client.get("/api/browse/org/model/vram-estimate")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["groups"][0]["quant"] == "model-Q4_K_M.gguf"
+    assert body["groups"][0]["weight_bytes"] == 4_000_000_000
+    mock_compute.assert_called_once_with("org/model")

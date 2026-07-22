@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
-from app.schemas import ModelDetailResponse, ModelSummaryResponse
+from app.schemas import ModelDetailResponse, ModelSummaryResponse, VramEstimateResponse
 from app.services.browse import get_model_detail, search_models
+from app.services.vram_estimate import compute_vram_estimate
 
 router = APIRouter(prefix="/api/browse", tags=["browse"])
 
@@ -23,3 +24,9 @@ async def model_detail(repo_id: str) -> ModelDetailResponse:
         readme=detail.readme,
         files=[f.__dict__ for f in detail.files],
     )
+
+
+@router.get("/{repo_id:path}/vram-estimate", response_model=VramEstimateResponse)
+async def vram_estimate(repo_id: str) -> VramEstimateResponse:
+    estimates = compute_vram_estimate(repo_id)
+    return VramEstimateResponse(groups=[e.__dict__ for e in estimates])
