@@ -8,6 +8,7 @@ import type {
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
 import type { Settings } from "@/types/settings";
+import type { QuantEstimate } from "@/types/vram";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const resp = init === undefined ? await fetch(url) : await fetch(url, init);
@@ -209,4 +210,25 @@ export async function updateSettings(vramBudgetGb: number): Promise<Settings> {
     body: JSON.stringify({ vram_budget_gb: vramBudgetGb }),
   });
   return { vramBudgetGb: raw.vram_budget_gb };
+}
+
+export async function getVramEstimate(repoId: string): Promise<QuantEstimate[]> {
+  const raw = await request<{
+    groups: {
+      quant: string;
+      files: string[];
+      weight_bytes: number;
+      context_length: number;
+      kv_cache_max_bytes: number;
+      kv_cache_half_bytes: number;
+    }[];
+  }>(`/api/browse/${repoId}/vram-estimate`);
+  return raw.groups.map((g) => ({
+    quant: g.quant,
+    files: g.files,
+    weightBytes: g.weight_bytes,
+    contextLength: g.context_length,
+    kvCacheMaxBytes: g.kv_cache_max_bytes,
+    kvCacheHalfBytes: g.kv_cache_half_bytes,
+  }));
 }

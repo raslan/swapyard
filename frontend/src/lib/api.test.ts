@@ -12,6 +12,7 @@ import {
   getConfigSchema,
   getConfigStatus,
   getSettings,
+  getVramEstimate,
   listManagedModels,
   searchModels,
   startDownload,
@@ -242,5 +243,40 @@ describe("updateSettings", () => {
       body: JSON.stringify({ vram_budget_gb: 16 }),
     });
     expect(result).toEqual({ vramBudgetGb: 16 });
+  });
+});
+
+describe("getVramEstimate", () => {
+  it("fetches and camel-cases the quant groups", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        groups: [
+          {
+            quant: "model-Q4_K_M.gguf",
+            files: ["model-Q4_K_M.gguf"],
+            weight_bytes: 4_000_000_000,
+            context_length: 8192,
+            kv_cache_max_bytes: 500_000_000,
+            kv_cache_half_bytes: 250_000_000,
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getVramEstimate("org/model");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/browse/org/model/vram-estimate");
+    expect(result).toEqual([
+      {
+        quant: "model-Q4_K_M.gguf",
+        files: ["model-Q4_K_M.gguf"],
+        weightBytes: 4_000_000_000,
+        contextLength: 8192,
+        kvCacheMaxBytes: 500_000_000,
+        kvCacheHalfBytes: 250_000_000,
+      },
+    ]);
   });
 });
