@@ -1,18 +1,22 @@
 import { AlertCircle, ArrowLeft, FileText, List, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { FileRow } from "@/components/FileRow";
+import { QuantGroup } from "@/components/QuantGroup";
 import { ReadmeFrame } from "@/components/ReadmeFrame";
 import { Button } from "@/components/ui/button";
 import { useDownloads } from "@/hooks/useDownloads";
 import { useManagedModels } from "@/hooks/useManagedModels";
 import { useModelDetail } from "@/hooks/useModelDetail";
+import { useSettings } from "@/hooks/useSettings";
+import { useVramEstimate } from "@/hooks/useVramEstimate";
 import { formatNumber } from "@/lib/format";
+import type { ModelFile } from "@/types/model";
 
 export function BrowseDetailPage() {
   // HF repo ids are "owner/name" (e.g. "TheBloke/Llama-2-7B-GGUF"), i.e. they contain a
-  // literal "/". A named param segment (`:repoId`) can never match that — react-router
+  // literal "/". A named param segment (`:repoId`) can never match that - react-router
   // params never span a "/". The route is registered as a wildcard (`browse/*`) instead,
   // so the full remainder of the path is read from the "*" param.
   const params = useParams();
@@ -22,6 +26,8 @@ export function BrowseDetailPage() {
   const { detail, loading, error } = useModelDetail(repoId);
   const { start, downloads } = useDownloads();
   const { models: managedModels } = useManagedModels();
+  const { estimate } = useVramEstimate(repoId);
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -31,6 +37,33 @@ export function BrowseDetailPage() {
   const downloadingFiles = new Set(
     downloads.filter((d) => d.repoId === repoId && d.status === "downloading").map((d) => d.filename),
   );
+
+  const fileStatus = (file: ModelFile): "none" | "downloading" | "downloaded" =>
+    downloadedFiles.has(file.name) ? "downloaded" : downloadingFiles.has(file.name) ? "downloading" : "none";
+
+  const handleDownload = async (file: ModelFile) => {
+    try {
+      setDownloadError(null);
+      await start(repoId, file.name, file.isXet);
+      navigate("/manage");
+    } catch (err) {
+      console.error("Failed to start download", err);
+      setDownloadError("Failed to start download. Please try again.");
+    }
+  };
+
+  // The best-fitting quant is computed client-side against the settings budget
+  // (rather than server-side) so changing the budget never needs a re-fetch.
+  const budgetBytes = settings.vramBudgetGb != null ? settings.vramBudgetGb * 1_000_000_000 : null;
+  const bestFitQuant =
+    budgetBytes != null
+      ? estimate
+          .filter((g) => g.weightBytes + g.kvCacheMaxBytes <= budgetBytes)
+          .sort((a, b) => b.weightBytes + b.kvCacheMaxBytes - (a.weightBytes + a.kvCacheMaxBytes))[0]
+      : undefined;
+
+  const groupedNames = new Set(estimate.flatMap((g) => g.files));
+  const ungroupedFiles = detail?.files.filter((f) => !groupedNames.has(f.name)) ?? [];
 
   const backButton = (
     <Button
@@ -101,36 +134,43 @@ export function BrowseDetailPage() {
           </div>
         )}
         {tab === "files" && (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {downloadError && (
               <p className="text-sm text-red-400 flex items-center gap-2" role="alert">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {downloadError}
               </p>
             )}
-            {detail.files.map((file) => (
-              <FileRow
-                key={file.name}
-                file={file}
-                status={
-                  downloadedFiles.has(file.name)
-                    ? "downloaded"
-                    : downloadingFiles.has(file.name)
-                      ? "downloading"
-                      : "none"
-                }
-                onDownload={async () => {
-                  try {
-                    setDownloadError(null);
-                    await start(repoId, file.name, file.isXet);
-                    navigate("/manage");
-                  } catch (err) {
-                    console.error("Failed to start download", err);
-                    setDownloadError("Failed to start download. Please try again.");
-                  }
-                }}
+            {estimate.length > 0 && settings.vramBudgetGb == null && (
+              <p className="text-xs text-text-muted">
+                <Link to="/settings" className="text-cyan hover:underline">
+                  Set your VRAM in Settings
+                </Link>{" "}
+                to see fit recommendations.
+              </p>
+            )}
+            {estimate.map((group) => (
+              <QuantGroup
+                key={group.quant}
+                estimate={group}
+                files={group.files
+                  .map((name) => detail.files.find((f) => f.name === name))
+                  .filter((f): f is ModelFile => f !== undefined)}
+                fits={bestFitQuant?.quant === group.quant}
+                fileStatus={fileStatus}
+                onDownload={handleDownload}
               />
             ))}
+            <div className="space-y-2">
+              {ungroupedFiles.map((file) => (
+                <FileRow
+                  key={file.name}
+                  file={file}
+                  status={fileStatus(file)}
+                  onDownload={() => handleDownload(file)}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
