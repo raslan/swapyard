@@ -77,3 +77,11 @@ class ConfigRevisionResponse(BaseModel):
 class ConfigStatusResponse(BaseModel):
     status: str | None = None
     timestamp: float | None = None
+
+
+class SettingsResponse(BaseModel):
+    vram_budget_gb: float | None
+
+
+class SettingsUpdateRequest(BaseModel):
+    vram_budget_gb: float
