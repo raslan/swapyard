@@ -7,6 +7,7 @@ import type {
 } from "@/types/config";
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
+import type { Settings } from "@/types/settings";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const resp = init === undefined ? await fetch(url) : await fetch(url, init);
@@ -194,4 +195,18 @@ export async function applyConfig(content: string, baseHash: string): Promise<Ap
     throw new Error(`Request to /api/config failed with ${resp.status}`);
   }
   return (await resp.json()) as ApplyConfigResult;
+}
+
+export async function getSettings(): Promise<Settings> {
+  const raw = await request<{ vram_budget_gb: number | null }>("/api/settings");
+  return { vramBudgetGb: raw.vram_budget_gb };
+}
+
+export async function updateSettings(vramBudgetGb: number): Promise<Settings> {
+  const raw = await request<{ vram_budget_gb: number | null }>("/api/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vram_budget_gb: vramBudgetGb }),
+  });
+  return { vramBudgetGb: raw.vram_budget_gb };
 }

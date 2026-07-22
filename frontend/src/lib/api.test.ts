@@ -11,9 +11,11 @@ import {
   getConfigHistory,
   getConfigSchema,
   getConfigStatus,
+  getSettings,
   listManagedModels,
   searchModels,
   startDownload,
+  updateSettings,
 } from "./api";
 
 afterEach(() => {
@@ -206,5 +208,39 @@ describe("getConfigFlags", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/config/flags");
     expect(result).toEqual([{ flag: "--ngl", aliases: ["-ngl"], description: "layers", default: "0" }]);
+  });
+});
+
+describe("getSettings", () => {
+  it("fetches and camel-cases the budget", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ vram_budget_gb: 24 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getSettings();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/settings");
+    expect(result).toEqual({ vramBudgetGb: 24 });
+  });
+});
+
+describe("updateSettings", () => {
+  it("PUTs the new budget and camel-cases the response", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ vram_budget_gb: 16 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await updateSettings(16);
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vram_budget_gb: 16 }),
+    });
+    expect(result).toEqual({ vramBudgetGb: 16 });
   });
 });
