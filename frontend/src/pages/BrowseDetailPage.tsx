@@ -52,18 +52,15 @@ export function BrowseDetailPage() {
     }
   };
 
-  // The best-fitting quant is computed client-side against the settings budget
-  // (rather than server-side) so changing the budget never needs a re-fetch.
-  // Weight size only - a flat 15% cushion accounts for context/runtime
-  // overhead without trying to model it precisely (see HISTORY.md).
+  // Fit is computed client-side against the settings budget (rather than
+  // server-side) so changing the budget never needs a re-fetch. Weight size
+  // only - a flat 15% cushion accounts for context/runtime overhead without
+  // trying to model it precisely (see HISTORY.md). Every quant that fits is
+  // badged; the largest of those is additionally marked "Recommended".
   const FIT_CUSHION = 1.15;
   const budgetBytes = settings.vramBudgetGb != null ? settings.vramBudgetGb * 1_000_000_000 : null;
-  const bestFitQuant =
-    budgetBytes != null
-      ? estimate
-          .filter((g) => g.weightBytes * FIT_CUSHION <= budgetBytes)
-          .sort((a, b) => b.weightBytes - a.weightBytes)[0]
-      : undefined;
+  const fittingQuants = budgetBytes != null ? estimate.filter((g) => g.weightBytes * FIT_CUSHION <= budgetBytes) : [];
+  const recommendedQuant = fittingQuants.sort((a, b) => b.weightBytes - a.weightBytes)[0];
 
   const groupedNames = new Set(estimate.flatMap((g) => g.files));
   const ungroupedFiles = detail?.files.filter((f) => !groupedNames.has(f.name)) ?? [];
@@ -155,11 +152,11 @@ export function BrowseDetailPage() {
             {estimate.map((group) => (
               <QuantGroup
                 key={group.quant}
-                estimate={group}
                 files={group.files
                   .map((name) => detail.files.find((f) => f.name === name))
                   .filter((f): f is ModelFile => f !== undefined)}
-                fits={bestFitQuant?.quant === group.quant}
+                fits={fittingQuants.some((g) => g.quant === group.quant)}
+                recommended={recommendedQuant?.quant === group.quant}
                 fileStatus={fileStatus}
                 onDownload={handleDownload}
               />
