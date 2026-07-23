@@ -256,9 +256,6 @@ describe("getVramEstimate", () => {
             quant: "model-Q4_K_M.gguf",
             files: ["model-Q4_K_M.gguf"],
             weight_bytes: 4_000_000_000,
-            context_length: 8192,
-            kv_cache_max_bytes: 500_000_000,
-            kv_cache_half_bytes: 250_000_000,
           },
         ],
       }),
@@ -273,9 +270,6 @@ describe("getVramEstimate", () => {
         quant: "model-Q4_K_M.gguf",
         files: ["model-Q4_K_M.gguf"],
         weightBytes: 4_000_000_000,
-        contextLength: 8192,
-        kvCacheMaxBytes: 500_000_000,
-        kvCacheHalfBytes: 250_000_000,
       },
     ]);
   });

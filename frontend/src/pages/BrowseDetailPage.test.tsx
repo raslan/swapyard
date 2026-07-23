@@ -253,9 +253,6 @@ describe("BrowseDetailPage", () => {
         quant: "model-Q4_K_M.gguf",
         files: ["model-Q4_K_M.gguf"],
         weightBytes: 1000,
-        contextLength: 8192,
-        kvCacheMaxBytes: 100,
-        kvCacheHalfBytes: 50,
       },
     ]);
 
@@ -282,9 +279,6 @@ describe("BrowseDetailPage", () => {
         quant: "model-Q4_K_M.gguf",
         files: ["model-Q4_K_M.gguf"],
         weightBytes: 1000,
-        contextLength: 8192,
-        kvCacheMaxBytes: 100,
-        kvCacheHalfBytes: 50,
       },
     ]);
 

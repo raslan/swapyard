@@ -14,9 +14,6 @@ describe("useVramEstimate", () => {
         quant: "model-Q4_K_M.gguf",
         files: ["model-Q4_K_M.gguf"],
         weightBytes: 100,
-        contextLength: 4096,
-        kvCacheMaxBytes: 10,
-        kvCacheHalfBytes: 5,
       },
     ]);
 

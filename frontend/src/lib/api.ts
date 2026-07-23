@@ -214,21 +214,11 @@ export async function updateSettings(vramBudgetGb: number): Promise<Settings> {
 
 export async function getVramEstimate(repoId: string): Promise<QuantEstimate[]> {
   const raw = await request<{
-    groups: {
-      quant: string;
-      files: string[];
-      weight_bytes: number;
-      context_length: number;
-      kv_cache_max_bytes: number;
-      kv_cache_half_bytes: number;
-    }[];
+    groups: { quant: string; files: string[]; weight_bytes: number }[];
   }>(`/api/browse/${repoId}/vram-estimate`);
   return raw.groups.map((g) => ({
     quant: g.quant,
     files: g.files,
     weightBytes: g.weight_bytes,
-    contextLength: g.context_length,
-    kvCacheMaxBytes: g.kv_cache_max_bytes,
-    kvCacheHalfBytes: g.kv_cache_half_bytes,
   }));
 }

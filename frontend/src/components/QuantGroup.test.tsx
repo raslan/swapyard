@@ -7,22 +7,18 @@ const estimate = {
   quant: "model-Q4_K_M.gguf",
   files: ["model-Q4_K_M.gguf"],
   weightBytes: 4_000_000_000,
-  contextLength: 8192,
-  kvCacheMaxBytes: 500_000_000,
-  kvCacheHalfBytes: 250_000_000,
 };
 
 const files = [{ name: "model-Q4_K_M.gguf", size: 4_000_000_000, category: "gguf" as const, isXet: false }];
 
 describe("QuantGroup", () => {
-  it("shows the quant label and estimate at max and half context", () => {
+  it("shows the quant label and weight size", () => {
     render(
       <QuantGroup estimate={estimate} files={files} fits={false} fileStatus={() => "none"} onDownload={vi.fn()} />,
     );
 
     expect(screen.getByText("Q4_K_M", { exact: true })).toBeInTheDocument();
-    expect(screen.getByText(/8\.2K ctx/)).toBeInTheDocument();
-    expect(screen.getByText(/4\.1K ctx/)).toBeInTheDocument();
+    expect(screen.getByText("3.7 GB")).toBeInTheDocument();
   });
 
   it("shows a Fits your GPU badge when fits is true, and hides it otherwise", () => {

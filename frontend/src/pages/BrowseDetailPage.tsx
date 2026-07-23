@@ -54,12 +54,15 @@ export function BrowseDetailPage() {
 
   // The best-fitting quant is computed client-side against the settings budget
   // (rather than server-side) so changing the budget never needs a re-fetch.
+  // Weight size only - a flat 15% cushion accounts for context/runtime
+  // overhead without trying to model it precisely (see HISTORY.md).
+  const FIT_CUSHION = 1.15;
   const budgetBytes = settings.vramBudgetGb != null ? settings.vramBudgetGb * 1_000_000_000 : null;
   const bestFitQuant =
     budgetBytes != null
       ? estimate
-          .filter((g) => g.weightBytes + g.kvCacheMaxBytes <= budgetBytes)
-          .sort((a, b) => b.weightBytes + b.kvCacheMaxBytes - (a.weightBytes + a.kvCacheMaxBytes))[0]
+          .filter((g) => g.weightBytes * FIT_CUSHION <= budgetBytes)
+          .sort((a, b) => b.weightBytes - a.weightBytes)[0]
       : undefined;
 
   const groupedNames = new Set(estimate.flatMap((g) => g.files));

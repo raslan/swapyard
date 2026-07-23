@@ -1,7 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 
 import { FileRow } from "@/components/FileRow";
-import { formatNumber, formatQuantLabel, formatSize } from "@/lib/format";
+import { formatQuantLabel, formatSize } from "@/lib/format";
 import type { ModelFile } from "@/types/model";
 import type { QuantEstimate } from "@/types/vram";
 
@@ -22,11 +22,7 @@ export function QuantGroup({
     <div className="space-y-1">
       <div className="flex items-center gap-2 px-1 text-xs font-mono text-text-muted">
         <span className="text-text-secondary">{formatQuantLabel(estimate.quant)}</span>
-        <span>
-          ≈{formatSize(estimate.weightBytes + estimate.kvCacheMaxBytes)} at {formatNumber(estimate.contextLength)}{" "}
-          ctx · ≈{formatSize(estimate.weightBytes + estimate.kvCacheHalfBytes)} at{" "}
-          {formatNumber(Math.floor(estimate.contextLength / 2))} ctx
-        </span>
+        <span>{formatSize(estimate.weightBytes)}</span>
         {fits && (
           <span className="inline-flex items-center gap-1 text-success">
             <CheckCircle2 className="w-3.5 h-3.5" />

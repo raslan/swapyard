@@ -91,9 +91,6 @@ class QuantEstimateResponse(BaseModel):
     quant: str
     files: list[str]
     weight_bytes: int
-    context_length: int
-    kv_cache_max_bytes: int
-    kv_cache_half_bytes: int
 
 
 class VramEstimateResponse(BaseModel):

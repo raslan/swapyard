@@ -43,9 +43,6 @@ def test_vram_estimate_route(mock_compute):
             quant="model-Q4_K_M.gguf",
             files=["model-Q4_K_M.gguf"],
             weight_bytes=4_000_000_000,
-            context_length=8192,
-            kv_cache_max_bytes=500_000_000,
-            kv_cache_half_bytes=250_000_000,
         )
     ]
 
