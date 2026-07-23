@@ -143,7 +143,9 @@ class GgufArchInfo:
     architecture: str
     block_count: int
     head_count: int
-    head_count_kv: int
+    # Some architectures (e.g. Gemma3/4's sliding-window attention) vary this
+    # per layer, encoded in GGUF as an array rather than a scalar.
+    head_count_kv: int | list[int]
     embedding_length: int
     context_length: int
     key_length: int

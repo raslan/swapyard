@@ -35,8 +35,18 @@ def group_gguf_files(files: list[ModelFile]) -> dict[str, list[ModelFile]]:
     return groups
 
 
-def kv_cache_bytes(n_layer: int, n_head_kv: int, head_dim: int, context: int) -> int:
-    return round(n_layer * 2 * n_head_kv * head_dim * context * _Q8_0_BYTES_PER_ELEMENT)
+def kv_cache_bytes(n_layer: int, n_head_kv: int | list[int], head_dim: int, context: int) -> int:
+    """VRAM for the KV cache at q8_0.
+
+    `n_head_kv` is a scalar for architectures with a uniform per-layer KV head
+    count, or a list of per-layer counts for architectures (e.g. Gemma3/4's
+    sliding-window local/global attention alternation) where GGUF encodes it as
+    a per-layer array instead. Multiplying a list by an int is Python
+    list-repetition, not arithmetic, so the two shapes must be handled
+    distinctly rather than assumed scalar.
+    """
+    total_head_kv = sum(n_head_kv) if isinstance(n_head_kv, list) else n_layer * n_head_kv
+    return round(total_head_kv * 2 * head_dim * context * _Q8_0_BYTES_PER_ELEMENT)
 
 
 def compute_vram_estimate(repo_id: str) -> list[QuantEstimate]:
