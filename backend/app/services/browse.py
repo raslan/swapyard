@@ -1,3 +1,4 @@
+import concurrent.futures
 import os
 import re
 from dataclasses import dataclass
@@ -76,15 +77,26 @@ def search_models(query: str | None) -> list[ModelSummary]:
 
 
 def get_model_detail(repo_id: str) -> ModelDetail:
+    # model_info, the Xet-filename lookup, and the README fetch are three
+    # independent HTTP round trips (none depends on another's result) that
+    # were previously run sequentially, needlessly adding their latencies -
+    # run them concurrently instead.
     api = HfApi()
-    try:
-        info = api.model_info(repo_id, files_metadata=True)
-    except RepositoryNotFoundError as exc:
-        raise NotFoundError(f"model '{repo_id}' not found") from exc
-    except HfHubHTTPError as exc:
-        raise UpstreamError(f"failed to reach Hugging Face: {exc}") from exc
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        info_future = executor.submit(api.model_info, repo_id, files_metadata=True)
+        xet_future = executor.submit(_fetch_xet_filenames, repo_id)
+        readme_future = executor.submit(_fetch_readme, repo_id)
 
-    xet_files = _fetch_xet_filenames(repo_id)
+        try:
+            info = info_future.result()
+        except RepositoryNotFoundError as exc:
+            raise NotFoundError(f"model '{repo_id}' not found") from exc
+        except HfHubHTTPError as exc:
+            raise UpstreamError(f"failed to reach Hugging Face: {exc}") from exc
+
+        xet_files = xet_future.result()
+        readme = readme_future.result()
+
     files = []
     for sibling in info.siblings or []:
         category = _categorize_file(sibling.rfilename)
@@ -97,8 +109,6 @@ def get_model_detail(repo_id: str) -> ModelDetail:
                     is_xet=sibling.rfilename in xet_files,
                 )
             )
-
-    readme = _fetch_readme(repo_id)
 
     return ModelDetail(
         repo_id=info.id,

@@ -1,3 +1,4 @@
+import time
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -107,6 +108,44 @@ def test_get_model_detail_happy_path(mock_hf_api_cls, mock_fetch_readme, mock_fe
     assert files_by_name["mmproj-model-f16.gguf"].category == "mmproj"
     assert files_by_name["mmproj-model-f16.gguf"].is_xet is False
     assert files_by_name["tokenizer_config.json"].category == "other"
+
+
+@patch("app.services.browse._fetch_xet_filenames")
+@patch("app.services.browse._fetch_readme")
+@patch("app.services.browse.HfApi")
+def test_get_model_detail_runs_the_three_fetches_concurrently_not_sequentially(
+    mock_hf_api_cls, mock_fetch_readme, mock_fetch_xet
+):
+    # Regression test: these three HTTP round trips are independent (none
+    # needs another's result) and were previously run one after another,
+    # summing their latencies for no reason. Each mock sleeps, so a
+    # sequential implementation takes ~3x as long as a concurrent one.
+    delay = 0.1
+
+    def slow_model_info(*args, **kwargs):
+        time.sleep(delay)
+        return MagicMock(id="org/model", author="org", downloads=1, likes=1, siblings=[])
+
+    def slow_fetch_readme(*args, **kwargs):
+        time.sleep(delay)
+        return "readme"
+
+    def slow_fetch_xet(*args, **kwargs):
+        time.sleep(delay)
+        return set()
+
+    mock_api = MagicMock()
+    mock_hf_api_cls.return_value = mock_api
+    mock_api.model_info.side_effect = slow_model_info
+    mock_fetch_readme.side_effect = slow_fetch_readme
+    mock_fetch_xet.side_effect = slow_fetch_xet
+
+    start = time.monotonic()
+    get_model_detail("org/model")
+    elapsed = time.monotonic() - start
+
+    # Concurrent: ~1x delay plus scheduling overhead. Sequential would be ~3x.
+    assert elapsed < delay * 2
 
 
 @patch("app.services.browse.HfApi")
