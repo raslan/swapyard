@@ -198,6 +198,31 @@ export async function applyConfig(content: string, baseHash: string): Promise<Ap
   return (await resp.json()) as ApplyConfigResult;
 }
 
+export async function createConfigEntry(
+  repoId: string,
+  filename: string,
+  modelId: string,
+): Promise<ApplyConfigResult> {
+  const resp = await fetch("/api/config/models", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo_id: repoId, filename, model_id: modelId }),
+  });
+
+  if (resp.status === 409) {
+    const body = await resp.json();
+    throw new Error(body?.error?.message ?? `Request to /api/config/models failed with 409`);
+  }
+  if (resp.status === 422) {
+    const body = await resp.json();
+    throw new ConfigValidationError(body.error.message);
+  }
+  if (!resp.ok) {
+    throw new Error(`Request to /api/config/models failed with ${resp.status}`);
+  }
+  return (await resp.json()) as ApplyConfigResult;
+}
+
 function toHardware(raw: {
   kind: "gpus" | "unified";
   gpus: { name: string | null; vram_gb: number }[];

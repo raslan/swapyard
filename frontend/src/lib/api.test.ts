@@ -5,6 +5,7 @@ import {
   ConfigConflictError,
   ConfigValidationError,
   applyConfig,
+  createConfigEntry,
   deleteManagedModel,
   getConfig,
   getConfigFlags,
@@ -293,5 +294,38 @@ describe("getVramEstimate", () => {
         weightBytes: 4_000_000_000,
       },
     ]);
+  });
+});
+
+describe("createConfigEntry", () => {
+  it("posts repo/filename/model_id and returns the apply result", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "unverified", logs: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createConfigEntry("org/repo", "model-Q4_K_M.gguf", "my-model");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_id: "org/repo", filename: "model-Q4_K_M.gguf", model_id: "my-model" }),
+    });
+    expect(result).toEqual({ status: "unverified", logs: null });
+  });
+
+  it("throws an error on 409 model-id collision", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: { message: "model id 'my-model' already exists" } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createConfigEntry("org/repo", "x.gguf", "my-model")).rejects.toThrow(
+      /already exists/,
+    );
   });
 });
