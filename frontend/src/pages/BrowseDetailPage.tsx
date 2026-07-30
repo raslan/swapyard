@@ -13,6 +13,19 @@ import { useSettings } from "@/hooks/useSettings";
 import { useVramEstimate } from "@/hooks/useVramEstimate";
 import { formatNumber } from "@/lib/format";
 import type { ModelFile } from "@/types/model";
+import type { HardwareProfile } from "@/types/settings";
+
+// Approximation: for multi-GPU setups this sums total VRAM as the fit
+// budget, same approximation-with-a-cushion spirit as FIT_CUSHION below —
+// real multi-GPU layer-split efficiency varies, this is a ballpark.
+function totalVramBytes(hardware: HardwareProfile | null): number | null {
+  if (hardware === null) return null;
+  if (hardware.kind === "gpus") {
+    if (hardware.gpus.length === 0) return null;
+    return hardware.gpus.reduce((sum, g) => sum + g.vramGb, 0) * 1_000_000_000;
+  }
+  return hardware.systemRamGb != null ? hardware.systemRamGb * 1_000_000_000 : null;
+}
 
 export function BrowseDetailPage() {
   // HF repo ids are "owner/name" (e.g. "TheBloke/Llama-2-7B-GGUF"), i.e. they contain a
@@ -58,7 +71,7 @@ export function BrowseDetailPage() {
   // trying to model it precisely (see HISTORY.md). Every quant that fits is
   // badged; the largest of those is additionally marked "Recommended".
   const FIT_CUSHION = 1.15;
-  const budgetBytes = settings.vramBudgetGb != null ? settings.vramBudgetGb * 1_000_000_000 : null;
+  const budgetBytes = totalVramBytes(settings.hardware);
   const fittingQuants = budgetBytes != null ? estimate.filter((g) => g.weightBytes * FIT_CUSHION <= budgetBytes) : [];
   const recommendedQuant = fittingQuants.sort((a, b) => b.weightBytes - a.weightBytes)[0];
 
@@ -141,7 +154,7 @@ export function BrowseDetailPage() {
                 {downloadError}
               </p>
             )}
-            {estimate.length > 0 && settings.vramBudgetGb == null && (
+            {estimate.length > 0 && settings.hardware == null && (
               <p className="text-xs text-text-muted">
                 <Link to="/settings" className="text-cyan hover:underline">
                   Set your VRAM in Settings
