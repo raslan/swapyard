@@ -1,3 +1,14 @@
+export interface GpuDevice {
+  name: string | null;
+  vramGb: number;
+}
+
+export interface HardwareProfile {
+  kind: "gpus" | "unified";
+  gpus: GpuDevice[];
+  systemRamGb: number | null;
+}
+
 export interface Settings {
-  vramBudgetGb: number | null;
+  hardware: HardwareProfile | null;
 }

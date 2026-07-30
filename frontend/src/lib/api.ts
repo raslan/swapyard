@@ -7,7 +7,7 @@ import type {
 } from "@/types/config";
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
-import type { Settings } from "@/types/settings";
+import type { HardwareProfile, Settings } from "@/types/settings";
 import type { QuantEstimate } from "@/types/vram";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -198,18 +198,40 @@ export async function applyConfig(content: string, baseHash: string): Promise<Ap
   return (await resp.json()) as ApplyConfigResult;
 }
 
-export async function getSettings(): Promise<Settings> {
-  const raw = await request<{ vram_budget_gb: number | null }>("/api/settings");
-  return { vramBudgetGb: raw.vram_budget_gb };
+function toHardware(raw: {
+  kind: "gpus" | "unified";
+  gpus: { name: string | null; vram_gb: number }[];
+  system_ram_gb: number | null;
+} | null): HardwareProfile | null {
+  if (raw === null) return null;
+  return {
+    kind: raw.kind,
+    gpus: raw.gpus.map((g) => ({ name: g.name, vramGb: g.vram_gb })),
+    systemRamGb: raw.system_ram_gb,
+  };
 }
 
-export async function updateSettings(vramBudgetGb: number): Promise<Settings> {
-  const raw = await request<{ vram_budget_gb: number | null }>("/api/settings", {
+function toHardwareRaw(hardware: HardwareProfile | null) {
+  if (hardware === null) return null;
+  return {
+    kind: hardware.kind,
+    gpus: hardware.gpus.map((g) => ({ name: g.name, vram_gb: g.vramGb })),
+    system_ram_gb: hardware.systemRamGb,
+  };
+}
+
+export async function getSettings(): Promise<Settings> {
+  const raw = await request<{ hardware: Parameters<typeof toHardware>[0] }>("/api/settings");
+  return { hardware: toHardware(raw.hardware) };
+}
+
+export async function updateSettings(hardware: HardwareProfile | null): Promise<Settings> {
+  const raw = await request<{ hardware: Parameters<typeof toHardware>[0] }>("/api/settings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ vram_budget_gb: vramBudgetGb }),
+    body: JSON.stringify({ hardware: toHardwareRaw(hardware) }),
   });
-  return { vramBudgetGb: raw.vram_budget_gb };
+  return { hardware: toHardware(raw.hardware) };
 }
 
 export async function getVramEstimate(repoId: string): Promise<QuantEstimate[]> {

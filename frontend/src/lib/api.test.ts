@@ -213,36 +213,57 @@ describe("getConfigFlags", () => {
 });
 
 describe("getSettings", () => {
-  it("fetches and camel-cases the budget", async () => {
+  it("getSettings maps a GPU hardware profile from snake_case", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ vram_budget_gb: 24 }),
+      json: async () => ({
+        hardware: {
+          kind: "gpus",
+          gpus: [{ name: "GPU 0", vram_gb: 24 }],
+          system_ram_gb: 64,
+        },
+      }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await getSettings();
+    const settings = await getSettings();
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/settings");
-    expect(result).toEqual({ vramBudgetGb: 24 });
+    expect(settings.hardware).toEqual({
+      kind: "gpus",
+      gpus: [{ name: "GPU 0", vramGb: 24 }],
+      systemRamGb: 64,
+    });
+  });
+
+  it("getSettings maps null hardware", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ hardware: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const settings = await getSettings();
+
+    expect(settings.hardware).toBeNull();
   });
 });
 
 describe("updateSettings", () => {
-  it("PUTs the new budget and camel-cases the response", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
+  it("updateSettings sends camelCase hardware as snake_case body", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ vram_budget_gb: 16 }),
+      json: async () => ({
+        hardware: { kind: "unified", gpus: [], system_ram_gb: 32 },
+      }),
     });
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", fetchSpy);
 
-    const result = await updateSettings(16);
+    await updateSettings({ kind: "unified", gpus: [], systemRamGb: 32 });
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ vram_budget_gb: 16 }),
+    const body = JSON.parse(fetchSpy.mock.calls[0][1].body as string);
+    expect(body).toEqual({
+      hardware: { kind: "unified", gpus: [], system_ram_gb: 32 },
     });
-    expect(result).toEqual({ vramBudgetGb: 16 });
   });
 });
 
