@@ -118,3 +118,31 @@ def test_get_config_flags_returns_empty_list_when_file_missing(config_client, mo
 
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+def test_post_config_models_creates_minimal_entry_and_applies(config_client):
+    client, config_file = config_client
+
+    resp = client.post(
+        "/api/config/models",
+        json={"repo_id": "org/repo", "filename": "model-Q4_K_M.gguf", "model_id": "my-model"},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] in ("unverified", "ok")
+
+    config_content = config_file.read_text()
+    assert "my-model:" in config_content
+    assert "org/repo:model-Q4_K_M.gguf" in config_content
+
+
+def test_post_config_models_rejects_duplicate_model_id(config_client):
+    client, config_file = config_client
+    config_file.write_text("models:\n  my-model:\n    cmd: llama-server\n")
+
+    resp = client.post(
+        "/api/config/models",
+        json={"repo_id": "org/repo", "filename": "x.gguf", "model_id": "my-model"},
+    )
+
+    assert resp.status_code == 409

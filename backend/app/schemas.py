@@ -75,6 +75,12 @@ class ConfigApplyRequest(BaseModel):
     base_hash: str
 
 
+class CreateModelEntryRequest(BaseModel):
+    repo_id: str
+    filename: str
+    model_id: str
+
+
 class ConfigApplyResponse(BaseModel):
     status: str
     logs: str | None = None
