@@ -4,6 +4,7 @@ import pytest
 from app.services.config import (
     ConfigConflict,
     ConfigInvalid,
+    add_model_entry,
     apply_config,
     commit_revision,
     get_status,
@@ -293,3 +294,28 @@ async def test_apply_config_returns_failed_status_when_health_check_never_succee
     assert "panic: bad config" in result["logs"]
     # file IS written even though verification failed - no auto-revert
     assert config_file.read_text() == "models: {a: {cmd: llama-server}}\n"
+
+
+def test_add_model_entry_inserts_new_entry_preserving_existing_content():
+    content = "# top comment\nmodels:\n  existing:\n    cmd: llama-server -hf a/b\n"
+
+    new_content = add_model_entry(content, "new-model", {"cmd": "llama-server --port ${PORT} -hf org/repo:Q4_K_M"})
+
+    assert "# top comment" in new_content
+    assert "existing:" in new_content
+    assert "new-model:" in new_content
+    assert "org/repo:Q4_K_M" in new_content
+
+
+def test_add_model_entry_raises_on_duplicate_model_id():
+    content = "models:\n  existing:\n    cmd: llama-server -hf a/b\n"
+
+    with pytest.raises(ValueError, match="existing"):
+        add_model_entry(content, "existing", {"cmd": "llama-server -hf x/y"})
+
+
+def test_add_model_entry_creates_models_key_when_absent():
+    new_content = add_model_entry("healthCheckTimeout: 120\n", "first", {"cmd": "llama-server -hf a/b"})
+
+    assert "models:" in new_content
+    assert "first:" in new_content

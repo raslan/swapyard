@@ -103,6 +103,24 @@ def remove_models_for_repo(content: str, repo_id: str) -> tuple[str, list[str]]:
     return out.getvalue(), to_remove
 
 
+def add_model_entry(content: str, model_id: str, entry: dict) -> str:
+    """Insert a new model entry into config.yaml's `models` map.
+    Raises ValueError if model_id already exists."""
+    data = _RUAMEL_YAML.load(content)
+    if data is None:
+        data = {}
+    if "models" not in data or data["models"] is None:
+        data["models"] = {}
+    if model_id in data["models"]:
+        raise ValueError(f"model id '{model_id}' already exists")
+
+    data["models"][model_id] = entry
+
+    out = io.StringIO()
+    _RUAMEL_YAML.dump(data, out)
+    return out.getvalue()
+
+
 from dulwich import porcelain
 from dulwich.repo import Repo
 
