@@ -328,4 +328,19 @@ describe("createConfigEntry", () => {
       /already exists/,
     );
   });
+
+  it("throws ConfigConflictError with disk content on 409 base_hash conflict", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ current_content: "models: {}\n", current_hash: "xyz" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const error = await createConfigEntry("org/repo", "x.gguf", "my-model").catch((e) => e);
+
+    expect(error).toBeInstanceOf(ConfigConflictError);
+    expect(error.diskContent).toBe("models: {}\n");
+    expect(error.diskHash).toBe("xyz");
+  });
 });

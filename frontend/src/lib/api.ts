@@ -211,6 +211,9 @@ export async function createConfigEntry(
 
   if (resp.status === 409) {
     const body = await resp.json();
+    if (body && typeof body.current_content === "string" && typeof body.current_hash === "string") {
+      throw new ConfigConflictError(body.current_content, body.current_hash);
+    }
     throw new Error(body?.error?.message ?? `Request to /api/config/models failed with 409`);
   }
   if (resp.status === 422) {
