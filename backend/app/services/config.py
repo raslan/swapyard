@@ -1,10 +1,14 @@
+import asyncio
 import hashlib
 import io
 import json
 import shlex
 from pathlib import Path
 
+import httpx
 import yaml
+from dulwich import porcelain
+from dulwich.repo import Repo
 from jsonschema import Draft7Validator
 from ruamel.yaml import YAML
 
@@ -121,9 +125,6 @@ def add_model_entry(content: str, model_id: str, entry: dict) -> str:
     return out.getvalue()
 
 
-from dulwich import porcelain
-from dulwich.repo import Repo
-
 _HISTORY_FILENAME = "config.yaml"
 _AUTHOR = b"Swapyard <swapyard@localhost>"
 
@@ -178,11 +179,6 @@ def get_status(history_dir: str) -> dict | None:
         return None
     latest = revisions[0]
     return {"status": latest["status"], "timestamp": latest["timestamp"]}
-
-
-import asyncio
-
-import httpx
 
 
 class ConfigConflict(Exception):

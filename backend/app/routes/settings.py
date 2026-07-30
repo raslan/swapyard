@@ -1,8 +1,19 @@
 from fastapi import APIRouter
 
 from app.errors import SwapyardError
-from app.schemas import GpuDeviceSchema, HardwareProfileSchema, SettingsResponse, SettingsUpdateRequest
-from app.services.settings import GpuDevice, HardwareProfile, Settings, read_settings, write_settings
+from app.schemas import (
+    GpuDeviceSchema,
+    HardwareProfileSchema,
+    SettingsResponse,
+    SettingsUpdateRequest,
+)
+from app.services.settings import (
+    GpuDevice,
+    HardwareProfile,
+    Settings,
+    read_settings,
+    write_settings,
+)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 

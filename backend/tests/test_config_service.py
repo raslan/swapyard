@@ -260,7 +260,9 @@ async def test_apply_config_returns_ok_when_health_check_succeeds(tmp_path, monk
     assert result["status"] == "ok"
 
 
-async def test_apply_config_returns_failed_status_when_health_check_never_succeeds(tmp_path, monkeypatch):
+async def test_apply_config_returns_failed_status_when_health_check_never_succeeds(
+    tmp_path, monkeypatch
+):
     config_file = tmp_path / "config.yaml"
     config_file.write_text("models: {}\n")
     history_dir = str(tmp_path / "history")
@@ -298,8 +300,8 @@ async def test_apply_config_returns_failed_status_when_health_check_never_succee
 
 def test_add_model_entry_inserts_new_entry_preserving_existing_content():
     content = "# top comment\nmodels:\n  existing:\n    cmd: llama-server -hf a/b\n"
-
-    new_content = add_model_entry(content, "new-model", {"cmd": "llama-server --port ${PORT} -hf org/repo:Q4_K_M"})
+    entry = {"cmd": "llama-server --port ${PORT} -hf org/repo:Q4_K_M"}
+    new_content = add_model_entry(content, "new-model", entry)
 
     assert "# top comment" in new_content
     assert "existing:" in new_content
@@ -315,7 +317,8 @@ def test_add_model_entry_raises_on_duplicate_model_id():
 
 
 def test_add_model_entry_creates_models_key_when_absent():
-    new_content = add_model_entry("healthCheckTimeout: 120\n", "first", {"cmd": "llama-server -hf a/b"})
+    entry = {"cmd": "llama-server -hf a/b"}
+    new_content = add_model_entry("healthCheckTimeout: 120\n", "first", entry)
 
     assert "models:" in new_content
     assert "first:" in new_content

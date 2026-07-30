@@ -1,4 +1,6 @@
+import json as _json
 import os
+from pathlib import Path as _Path
 
 from fastapi import APIRouter, Response
 from starlette.responses import JSONResponse
@@ -118,9 +120,6 @@ async def post_config_model(body: CreateModelEntryRequest) -> Response:
 
     return ConfigApplyResponse(status=result["status"], logs=result["logs"])
 
-
-import json as _json
-from pathlib import Path as _Path
 
 FLAGS_PATH: str = str(_Path(__file__).parent.parent / "llama_server_flags.json")
 

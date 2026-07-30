@@ -63,8 +63,15 @@ def test_put_settings_rejects_unified_kind_without_system_ram(client):
 
 
 def test_put_settings_rejects_non_positive_gpu_vram(client):
+    payload = {
+        "hardware": {
+            "kind": "gpus",
+            "gpus": [{"name": None, "vram_gb": 0}],
+            "system_ram_gb": None,
+        }
+    }
     resp = client.put(
         "/api/settings",
-        json={"hardware": {"kind": "gpus", "gpus": [{"name": None, "vram_gb": 0}], "system_ram_gb": None}},
+        json=payload,
     )
     assert resp.status_code == 422

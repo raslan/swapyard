@@ -1,4 +1,10 @@
-from app.services.settings import GpuDevice, HardwareProfile, Settings, read_settings, write_settings
+from app.services.settings import (
+    GpuDevice,
+    HardwareProfile,
+    Settings,
+    read_settings,
+    write_settings,
+)
 
 
 def test_read_settings_returns_none_hardware_when_file_missing(tmp_path):
