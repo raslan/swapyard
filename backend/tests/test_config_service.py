@@ -336,7 +336,7 @@ def test_add_model_entry_emits_literal_block_style_for_multiline_cmd():
     # it requires LiteralScalarString wrapping in build_minimal_entry.
     assert "cmd: |" in new_content
     assert "llama-server" in new_content
-    assert "-hf org/repo:model-Q4_K_M.gguf" in new_content
+    assert "-hf org/repo:model-Q4_K_M" in new_content
 
 
 def test_add_model_entry_does_not_line_wrap_long_cmd():

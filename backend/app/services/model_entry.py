@@ -1,4 +1,8 @@
+import re
+
 from ruamel.yaml.scalarstring import LiteralScalarString
+
+_GGUF_EXT_RE = re.compile(r"\.gguf$", re.IGNORECASE)
 
 
 def build_minimal_entry(repo_id: str, filename: str) -> dict:
@@ -21,7 +25,16 @@ def build_minimal_entry(repo_id: str, filename: str) -> dict:
     127.0.0.1 (not the JSON schema's own `localhost` default, and not left
     implicit), `checkEndpoint` is made explicit rather than left to the
     schema default, and `ttl` is set to 600 seconds. Keys are ordered
-    proxy/checkEndpoint/ttl/cmd to match real example configs."""
+    proxy/checkEndpoint/ttl/cmd to match real example configs.
+
+    llama.cpp's `-hf repo:X` resolution appends `.gguf` internally when
+    matching against the repo's file list, so if `filename` already ends in
+    `.gguf` the effective lookup becomes `....gguf.gguf` and matches
+    nothing (confirmed against real llama-server output). The `.gguf`
+    suffix is therefore stripped (case-insensitively) from the value used
+    in the `-hf` flag - `filename` itself still holds the real, full
+    filename as passed in."""
+    hf_quant = _GGUF_EXT_RE.sub("", filename)
     cmd_lines = [
         "llama-server",
         "--port ${PORT}",
@@ -29,7 +42,7 @@ def build_minimal_entry(repo_id: str, filename: str) -> dict:
         "--jinja",
         "--cache-type-k q8_0",
         "--cache-type-v q8_0",
-        f"-hf {repo_id}:{filename}",
+        f"-hf {repo_id}:{hf_quant}",
     ]
     return {
         "proxy": "http://127.0.0.1:${PORT}",

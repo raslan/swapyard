@@ -146,7 +146,7 @@ def test_post_config_models_creates_minimal_entry_and_applies(config_client):
 
     config_content = config_file.read_text()
     assert "my-model:" in config_content
-    assert "org/repo:model-Q4_K_M.gguf" in config_content
+    assert "org/repo:model-Q4_K_M" in config_content
 
 
 def test_post_config_models_rejects_duplicate_model_id(config_client):
