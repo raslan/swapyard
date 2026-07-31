@@ -322,3 +322,18 @@ def test_add_model_entry_creates_models_key_when_absent():
 
     assert "models:" in new_content
     assert "first:" in new_content
+
+
+def test_add_model_entry_does_not_line_wrap_long_cmd():
+    long_cmd = (
+        "llama-server --port ${PORT} --fit -hf "
+        "unsloth/Qwen3.6-35B-A3B-MTP-GGUF-really-quite-long-repo-name-here:"
+        "qwen3.6-35b-a3b-UD-Q4_K_M-with-an-extra-long-quant-suffix.gguf"
+    )
+    entry = {"cmd": long_cmd, "proxy": "http://localhost:${PORT}", "checkEndpoint": "/health"}
+    new_content = add_model_entry("models: {}\n", "new-model", entry)
+
+    lines = new_content.splitlines()
+    cmd_lines = [line for line in lines if "cmd:" in line]
+    assert len(cmd_lines) == 1
+    assert long_cmd in cmd_lines[0]

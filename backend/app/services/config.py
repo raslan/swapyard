@@ -90,6 +90,9 @@ def model_ids_for_repo(content: str, repo_id: str) -> list[str]:
 
 _RUAMEL_YAML = YAML()
 _RUAMEL_YAML.preserve_quotes = True
+# Large width so realistic single-line values (e.g. long cmd strings) never
+# get folded across multiple lines by ruamel's default plain-scalar wrapping.
+_RUAMEL_YAML.width = 4096
 
 
 def remove_models_for_repo(content: str, repo_id: str) -> tuple[str, list[str]]:
