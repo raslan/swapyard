@@ -8,9 +8,13 @@ def test_build_minimal_entry_emits_only_hf_ref_port_macro_and_fit():
     entry = build_minimal_entry(repo_id, filename)
 
     expected_cmd = (
-        "llama-server --port ${PORT} --fit --jinja "
-        "--cache-type-k q8_0 --cache-type-v q8_0 -hf "
-        "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:qwen3.6-35b-a3b-UD-Q4_K_M.gguf"
+        "llama-server\n"
+        "--port ${PORT}\n"
+        "--fit\n"
+        "--jinja\n"
+        "--cache-type-k q8_0\n"
+        "--cache-type-v q8_0\n"
+        "-hf unsloth/Qwen3.6-35B-A3B-MTP-GGUF:qwen3.6-35b-a3b-UD-Q4_K_M.gguf\n"
     )
     assert entry["cmd"] == expected_cmd
     # --fit is explicitly set; no -ngl, no -c anywhere - --fit is the only
@@ -24,12 +28,18 @@ def test_build_minimal_entry_emits_only_hf_ref_port_macro_and_fit():
     assert "--cache-type-v q8_0" in entry["cmd"]
 
 
-def test_build_minimal_entry_sets_explicit_proxy_and_check_endpoint_defaults():
+def test_build_minimal_entry_sets_explicit_proxy_check_endpoint_and_ttl():
     entry = build_minimal_entry("org/repo", "model-Q4_K_M.gguf")
 
-    assert entry["proxy"] == "http://localhost:${PORT}"
+    assert entry["proxy"] == "http://127.0.0.1:${PORT}"
     assert entry["checkEndpoint"] == "/health"
-    assert "ttl" not in entry
+    assert entry["ttl"] == 600
+
+
+def test_build_minimal_entry_key_order_matches_real_config_convention():
+    entry = build_minimal_entry("org/repo", "model-Q4_K_M.gguf")
+
+    assert list(entry.keys()) == ["proxy", "checkEndpoint", "ttl", "cmd"]
 
 
 def test_build_minimal_entry_round_trips_through_parse_cmd_model_ref():

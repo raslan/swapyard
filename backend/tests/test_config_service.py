@@ -324,6 +324,21 @@ def test_add_model_entry_creates_models_key_when_absent():
     assert "first:" in new_content
 
 
+def test_add_model_entry_emits_literal_block_style_for_multiline_cmd():
+    from app.services.model_entry import build_minimal_entry
+
+    entry = build_minimal_entry("org/repo", "model-Q4_K_M.gguf")
+    new_content = add_model_entry("models: {}\n", "new-model", entry)
+
+    # The whole point: the SERIALIZED YAML must use `cmd: |` literal block
+    # style, not a quoted single-line string with escaped \n's. A plain
+    # multi-line Python str handed to ruamel does NOT get this automatically -
+    # it requires LiteralScalarString wrapping in build_minimal_entry.
+    assert "cmd: |" in new_content
+    assert "llama-server" in new_content
+    assert "-hf org/repo:model-Q4_K_M.gguf" in new_content
+
+
 def test_add_model_entry_does_not_line_wrap_long_cmd():
     long_cmd = (
         "llama-server --port ${PORT} --fit -hf "
