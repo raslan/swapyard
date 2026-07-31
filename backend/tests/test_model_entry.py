@@ -8,7 +8,8 @@ def test_build_minimal_entry_emits_only_hf_ref_port_macro_and_fit():
     entry = build_minimal_entry(repo_id, filename)
 
     expected_cmd = (
-        "llama-server --port ${PORT} --fit -hf "
+        "llama-server --port ${PORT} --fit --jinja "
+        "--cache-type-k q8_0 --cache-type-v q8_0 -hf "
         "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:qwen3.6-35b-a3b-UD-Q4_K_M.gguf"
     )
     assert entry["cmd"] == expected_cmd
@@ -17,6 +18,10 @@ def test_build_minimal_entry_emits_only_hf_ref_port_macro_and_fit():
     assert "--fit" in entry["cmd"]
     assert "-ngl" not in entry["cmd"]
     assert " -c " not in entry["cmd"]
+    # --jinja and KV cache quantization are always on by default
+    assert "--jinja" in entry["cmd"]
+    assert "--cache-type-k q8_0" in entry["cmd"]
+    assert "--cache-type-v q8_0" in entry["cmd"]
 
 
 def test_build_minimal_entry_sets_explicit_proxy_and_check_endpoint_defaults():
