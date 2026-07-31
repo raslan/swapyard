@@ -26,6 +26,7 @@ def build_minimal_entry(repo_id: str, filename: str) -> dict:
         "llama-server",
         "--port ${PORT}",
         "--fit",
+        "on",
         "--jinja",
         "--cache-type-k q8_0",
         "--cache-type-v q8_0",

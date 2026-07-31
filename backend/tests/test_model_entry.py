@@ -11,6 +11,7 @@ def test_build_minimal_entry_emits_only_hf_ref_port_macro_and_fit():
         "llama-server\n"
         "--port ${PORT}\n"
         "--fit\n"
+        "on\n"
         "--jinja\n"
         "--cache-type-k q8_0\n"
         "--cache-type-v q8_0\n"
