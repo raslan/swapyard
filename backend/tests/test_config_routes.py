@@ -98,16 +98,29 @@ def test_get_config_history_lists_applied_revisions(config_client):
     assert body[0]["status"] == "unverified"
 
 
-def test_get_config_flags_returns_the_vendored_flags_list(config_client, tmp_path, monkeypatch):
+def test_get_config_flags_returns_the_vendored_flags_list(
+    config_client, tmp_path, monkeypatch
+):
     client, _ = config_client
     flags_file = tmp_path / "flags.json"
-    flags_file.write_text('[{"flag": "--ngl", "aliases": ["-ngl"], "description": "layers", "default": "0"}]')
+    flags_content = (
+        '[{"flag": "--ngl", "aliases": ["-ngl"], "description": "layers", "default": "0"}]'
+    )
+    flags_file.write_text(flags_content)
     monkeypatch.setattr("app.routes.config.FLAGS_PATH", str(flags_file))
 
     resp = client.get("/api/config/flags")
 
     assert resp.status_code == 200
-    assert resp.json() == [{"flag": "--ngl", "aliases": ["-ngl"], "description": "layers", "default": "0"}]
+    expected = [
+        {
+            "flag": "--ngl",
+            "aliases": ["-ngl"],
+            "description": "layers",
+            "default": "0",
+        }
+    ]
+    assert resp.json() == expected
 
 
 def test_get_config_flags_returns_empty_list_when_file_missing(config_client, monkeypatch):
@@ -118,3 +131,31 @@ def test_get_config_flags_returns_empty_list_when_file_missing(config_client, mo
 
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+def test_post_config_models_creates_minimal_entry_and_applies(config_client):
+    client, config_file = config_client
+
+    resp = client.post(
+        "/api/config/models",
+        json={"repo_id": "org/repo", "filename": "model-Q4_K_M.gguf", "model_id": "my-model"},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] in ("unverified", "ok")
+
+    config_content = config_file.read_text()
+    assert "my-model:" in config_content
+    assert "org/repo:model-Q4_K_M" in config_content
+
+
+def test_post_config_models_rejects_duplicate_model_id(config_client):
+    client, config_file = config_client
+    config_file.write_text("models:\n  my-model:\n    cmd: llama-server\n")
+
+    resp = client.post(
+        "/api/config/models",
+        json={"repo_id": "org/repo", "filename": "x.gguf", "model_id": "my-model"},
+    )
+
+    assert resp.status_code == 409

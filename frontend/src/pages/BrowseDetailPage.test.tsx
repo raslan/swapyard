@@ -38,7 +38,7 @@ describe("BrowseDetailPage", () => {
     // that fail the run even though both assertions pass.
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const { container } = renderAt("/browse/org/model");
@@ -64,7 +64,7 @@ describe("BrowseDetailPage", () => {
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const { container } = renderAt("/browse/org/model");
@@ -98,7 +98,7 @@ describe("BrowseDetailPage", () => {
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const { container } = renderAt("/browse/org/model");
@@ -122,7 +122,7 @@ describe("BrowseDetailPage", () => {
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const { container } = renderAt("/browse/org/model");
@@ -147,7 +147,7 @@ describe("BrowseDetailPage", () => {
       ],
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([
       {
@@ -179,7 +179,7 @@ describe("BrowseDetailPage", () => {
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     renderAt("/browse/org/model?tab=files");
@@ -198,7 +198,7 @@ describe("BrowseDetailPage", () => {
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
     const startSpy = vi.spyOn(api, "startDownload").mockResolvedValue({ id: "d1" });
     vi.spyOn(api, "subscribeToDownload").mockReturnValue(() => {});
@@ -224,7 +224,7 @@ describe("BrowseDetailPage", () => {
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const user = userEvent.setup();
@@ -236,7 +236,7 @@ describe("BrowseDetailPage", () => {
     await waitFor(() => expect(screen.getByText("Browse Screen")).toBeInTheDocument());
   });
 
-  it("shows a VRAM estimate and Fits your GPU badge on the matching quant", async () => {
+  it("sums all GPU VRAM when computing which quants fit", async () => {
     vi.spyOn(api, "getModelDetail").mockResolvedValue({
       repoId: "org/model",
       author: "org",
@@ -247,7 +247,33 @@ describe("BrowseDetailPage", () => {
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: 24 });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: { kind: "gpus", gpus: [{ name: null, vramGb: 12 }, { name: null, vramGb: 12 }], systemRamGb: null } });
+    vi.spyOn(api, "getVramEstimate").mockResolvedValue([
+      {
+        quant: "model-Q4_K_M.gguf",
+        files: ["model-Q4_K_M.gguf"],
+        weightBytes: 1000,
+      },
+    ]);
+
+    renderAt("/browse/org/model?tab=files");
+
+    await waitFor(() => expect(screen.getByText(/fits your gpu/i)).toBeInTheDocument());
+    expect(screen.getByText("model-Q4_K_M.gguf")).toBeInTheDocument();
+  });
+
+  it("uses systemRamGb as the pool size for unified memory", async () => {
+    vi.spyOn(api, "getModelDetail").mockResolvedValue({
+      repoId: "org/model",
+      author: "org",
+      downloads: 1,
+      likes: 0,
+      readme: "readme",
+      files: [{ name: "model-Q4_K_M.gguf", size: 1000, category: "gguf", isXet: false }],
+    });
+    vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
+    vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: { kind: "unified", gpus: [], systemRamGb: 16 } });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([
       {
         quant: "model-Q4_K_M.gguf",
@@ -273,7 +299,7 @@ describe("BrowseDetailPage", () => {
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([
       {
         quant: "model-Q4_K_M.gguf",
@@ -299,7 +325,7 @@ describe("BrowseDetailPage", () => {
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ vramBudgetGb: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     renderAt("/browse/org/model?tab=files");

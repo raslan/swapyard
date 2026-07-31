@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { getSettings, updateSettings } from "@/lib/api";
-import type { Settings } from "@/types/settings";
+import type { HardwareProfile, Settings } from "@/types/settings";
 
 export function useSettings() {
-  const [settings, setSettings] = useState<Settings>({ vramBudgetGb: null });
+  const [settings, setSettings] = useState<Settings>({ hardware: null });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,8 +14,8 @@ export function useSettings() {
     });
   }, []);
 
-  const save = useCallback(async (vramBudgetGb: number) => {
-    const updated = await updateSettings(vramBudgetGb);
+  const save = useCallback(async (hardware: HardwareProfile | null) => {
+    const updated = await updateSettings(hardware);
     setSettings(updated);
   }, []);
 

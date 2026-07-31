@@ -5,6 +5,7 @@ import {
   ConfigConflictError,
   ConfigValidationError,
   applyConfig,
+  createConfigEntry,
   deleteManagedModel,
   getConfig,
   getConfigFlags,
@@ -213,36 +214,57 @@ describe("getConfigFlags", () => {
 });
 
 describe("getSettings", () => {
-  it("fetches and camel-cases the budget", async () => {
+  it("getSettings maps a GPU hardware profile from snake_case", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ vram_budget_gb: 24 }),
+      json: async () => ({
+        hardware: {
+          kind: "gpus",
+          gpus: [{ name: "GPU 0", vram_gb: 24 }],
+          system_ram_gb: 64,
+        },
+      }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await getSettings();
+    const settings = await getSettings();
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/settings");
-    expect(result).toEqual({ vramBudgetGb: 24 });
+    expect(settings.hardware).toEqual({
+      kind: "gpus",
+      gpus: [{ name: "GPU 0", vramGb: 24 }],
+      systemRamGb: 64,
+    });
+  });
+
+  it("getSettings maps null hardware", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ hardware: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const settings = await getSettings();
+
+    expect(settings.hardware).toBeNull();
   });
 });
 
 describe("updateSettings", () => {
-  it("PUTs the new budget and camel-cases the response", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
+  it("updateSettings sends camelCase hardware as snake_case body", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ vram_budget_gb: 16 }),
+      json: async () => ({
+        hardware: { kind: "unified", gpus: [], system_ram_gb: 32 },
+      }),
     });
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", fetchSpy);
 
-    const result = await updateSettings(16);
+    await updateSettings({ kind: "unified", gpus: [], systemRamGb: 32 });
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ vram_budget_gb: 16 }),
+    const body = JSON.parse(fetchSpy.mock.calls[0][1].body as string);
+    expect(body).toEqual({
+      hardware: { kind: "unified", gpus: [], system_ram_gb: 32 },
     });
-    expect(result).toEqual({ vramBudgetGb: 16 });
   });
 });
 
@@ -272,5 +294,53 @@ describe("getVramEstimate", () => {
         weightBytes: 4_000_000_000,
       },
     ]);
+  });
+});
+
+describe("createConfigEntry", () => {
+  it("posts repo/filename/model_id and returns the apply result", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "unverified", logs: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createConfigEntry("org/repo", "model-Q4_K_M.gguf", "my-model");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_id: "org/repo", filename: "model-Q4_K_M.gguf", model_id: "my-model" }),
+    });
+    expect(result).toEqual({ status: "unverified", logs: null });
+  });
+
+  it("throws an error on 409 model-id collision", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: { message: "model id 'my-model' already exists" } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createConfigEntry("org/repo", "x.gguf", "my-model")).rejects.toThrow(
+      /already exists/,
+    );
+  });
+
+  it("throws ConfigConflictError with disk content on 409 base_hash conflict", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ current_content: "models: {}\n", current_hash: "xyz" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const error = await createConfigEntry("org/repo", "x.gguf", "my-model").catch((e) => e);
+
+    expect(error).toBeInstanceOf(ConfigConflictError);
+    expect(error.diskContent).toBe("models: {}\n");
+    expect(error.diskHash).toBe("xyz");
   });
 });

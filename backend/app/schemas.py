@@ -1,4 +1,17 @@
+from typing import Literal
+
 from pydantic import BaseModel
+
+
+class GpuDeviceSchema(BaseModel):
+    name: str | None = None
+    vram_gb: float
+
+
+class HardwareProfileSchema(BaseModel):
+    kind: Literal["gpus", "unified"]
+    gpus: list[GpuDeviceSchema] = []
+    system_ram_gb: float | None = None
 
 
 class ManagedModelResponse(BaseModel):
@@ -62,6 +75,12 @@ class ConfigApplyRequest(BaseModel):
     base_hash: str
 
 
+class CreateModelEntryRequest(BaseModel):
+    repo_id: str
+    filename: str
+    model_id: str
+
+
 class ConfigApplyResponse(BaseModel):
     status: str
     logs: str | None = None
@@ -80,11 +99,11 @@ class ConfigStatusResponse(BaseModel):
 
 
 class SettingsResponse(BaseModel):
-    vram_budget_gb: float | None
+    hardware: HardwareProfileSchema | None
 
 
 class SettingsUpdateRequest(BaseModel):
-    vram_budget_gb: float
+    hardware: HardwareProfileSchema | None
 
 
 class QuantEstimateResponse(BaseModel):

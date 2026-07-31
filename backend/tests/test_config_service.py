@@ -4,6 +4,7 @@ import pytest
 from app.services.config import (
     ConfigConflict,
     ConfigInvalid,
+    add_model_entry,
     apply_config,
     commit_revision,
     get_status,
@@ -259,7 +260,9 @@ async def test_apply_config_returns_ok_when_health_check_succeeds(tmp_path, monk
     assert result["status"] == "ok"
 
 
-async def test_apply_config_returns_failed_status_when_health_check_never_succeeds(tmp_path, monkeypatch):
+async def test_apply_config_returns_failed_status_when_health_check_never_succeeds(
+    tmp_path, monkeypatch
+):
     config_file = tmp_path / "config.yaml"
     config_file.write_text("models: {}\n")
     history_dir = str(tmp_path / "history")
@@ -293,3 +296,59 @@ async def test_apply_config_returns_failed_status_when_health_check_never_succee
     assert "panic: bad config" in result["logs"]
     # file IS written even though verification failed - no auto-revert
     assert config_file.read_text() == "models: {a: {cmd: llama-server}}\n"
+
+
+def test_add_model_entry_inserts_new_entry_preserving_existing_content():
+    content = "# top comment\nmodels:\n  existing:\n    cmd: llama-server -hf a/b\n"
+    entry = {"cmd": "llama-server --port ${PORT} -hf org/repo:Q4_K_M"}
+    new_content = add_model_entry(content, "new-model", entry)
+
+    assert "# top comment" in new_content
+    assert "existing:" in new_content
+    assert "new-model:" in new_content
+    assert "org/repo:Q4_K_M" in new_content
+
+
+def test_add_model_entry_raises_on_duplicate_model_id():
+    content = "models:\n  existing:\n    cmd: llama-server -hf a/b\n"
+
+    with pytest.raises(ValueError, match="existing"):
+        add_model_entry(content, "existing", {"cmd": "llama-server -hf x/y"})
+
+
+def test_add_model_entry_creates_models_key_when_absent():
+    entry = {"cmd": "llama-server -hf a/b"}
+    new_content = add_model_entry("healthCheckTimeout: 120\n", "first", entry)
+
+    assert "models:" in new_content
+    assert "first:" in new_content
+
+
+def test_add_model_entry_emits_literal_block_style_for_multiline_cmd():
+    from app.services.model_entry import build_minimal_entry
+
+    entry = build_minimal_entry("org/repo", "model-Q4_K_M.gguf")
+    new_content = add_model_entry("models: {}\n", "new-model", entry)
+
+    # The whole point: the SERIALIZED YAML must use `cmd: |` literal block
+    # style, not a quoted single-line string with escaped \n's. A plain
+    # multi-line Python str handed to ruamel does NOT get this automatically -
+    # it requires LiteralScalarString wrapping in build_minimal_entry.
+    assert "cmd: |" in new_content
+    assert "llama-server" in new_content
+    assert "-hf org/repo:model-Q4_K_M" in new_content
+
+
+def test_add_model_entry_does_not_line_wrap_long_cmd():
+    long_cmd = (
+        "llama-server --port ${PORT} --fit -hf "
+        "unsloth/Qwen3.6-35B-A3B-MTP-GGUF-really-quite-long-repo-name-here:"
+        "qwen3.6-35b-a3b-UD-Q4_K_M-with-an-extra-long-quant-suffix.gguf"
+    )
+    entry = {"cmd": long_cmd, "proxy": "http://localhost:${PORT}", "checkEndpoint": "/health"}
+    new_content = add_model_entry("models: {}\n", "new-model", entry)
+
+    lines = new_content.splitlines()
+    cmd_lines = [line for line in lines if "cmd:" in line]
+    assert len(cmd_lines) == 1
+    assert long_cmd in cmd_lines[0]

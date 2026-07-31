@@ -7,7 +7,7 @@ import type {
 } from "@/types/config";
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
-import type { Settings } from "@/types/settings";
+import type { HardwareProfile, Settings } from "@/types/settings";
 import type { QuantEstimate } from "@/types/vram";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -198,18 +198,68 @@ export async function applyConfig(content: string, baseHash: string): Promise<Ap
   return (await resp.json()) as ApplyConfigResult;
 }
 
-export async function getSettings(): Promise<Settings> {
-  const raw = await request<{ vram_budget_gb: number | null }>("/api/settings");
-  return { vramBudgetGb: raw.vram_budget_gb };
+export async function createConfigEntry(
+  repoId: string,
+  filename: string,
+  modelId: string,
+): Promise<ApplyConfigResult> {
+  const resp = await fetch("/api/config/models", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo_id: repoId, filename, model_id: modelId }),
+  });
+
+  if (resp.status === 409) {
+    const body = await resp.json();
+    if (body && typeof body.current_content === "string" && typeof body.current_hash === "string") {
+      throw new ConfigConflictError(body.current_content, body.current_hash);
+    }
+    throw new Error(body?.error?.message ?? `Request to /api/config/models failed with 409`);
+  }
+  if (resp.status === 422) {
+    const body = await resp.json();
+    throw new ConfigValidationError(body.error.message);
+  }
+  if (!resp.ok) {
+    throw new Error(`Request to /api/config/models failed with ${resp.status}`);
+  }
+  return (await resp.json()) as ApplyConfigResult;
 }
 
-export async function updateSettings(vramBudgetGb: number): Promise<Settings> {
-  const raw = await request<{ vram_budget_gb: number | null }>("/api/settings", {
+function toHardware(raw: {
+  kind: "gpus" | "unified";
+  gpus: { name: string | null; vram_gb: number }[];
+  system_ram_gb: number | null;
+} | null): HardwareProfile | null {
+  if (raw === null) return null;
+  return {
+    kind: raw.kind,
+    gpus: raw.gpus.map((g) => ({ name: g.name, vramGb: g.vram_gb })),
+    systemRamGb: raw.system_ram_gb,
+  };
+}
+
+function toHardwareRaw(hardware: HardwareProfile | null) {
+  if (hardware === null) return null;
+  return {
+    kind: hardware.kind,
+    gpus: hardware.gpus.map((g) => ({ name: g.name, vram_gb: g.vramGb })),
+    system_ram_gb: hardware.systemRamGb,
+  };
+}
+
+export async function getSettings(): Promise<Settings> {
+  const raw = await request<{ hardware: Parameters<typeof toHardware>[0] }>("/api/settings");
+  return { hardware: toHardware(raw.hardware) };
+}
+
+export async function updateSettings(hardware: HardwareProfile | null): Promise<Settings> {
+  const raw = await request<{ hardware: Parameters<typeof toHardware>[0] }>("/api/settings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ vram_budget_gb: vramBudgetGb }),
+    body: JSON.stringify({ hardware: toHardwareRaw(hardware) }),
   });
-  return { vramBudgetGb: raw.vram_budget_gb };
+  return { hardware: toHardware(raw.hardware) };
 }
 
 export async function getVramEstimate(repoId: string): Promise<QuantEstimate[]> {

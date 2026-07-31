@@ -1,10 +1,14 @@
+import asyncio
 import hashlib
 import io
 import json
 import shlex
 from pathlib import Path
 
+import httpx
 import yaml
+from dulwich import porcelain
+from dulwich.repo import Repo
 from jsonschema import Draft7Validator
 from ruamel.yaml import YAML
 
@@ -86,6 +90,9 @@ def model_ids_for_repo(content: str, repo_id: str) -> list[str]:
 
 _RUAMEL_YAML = YAML()
 _RUAMEL_YAML.preserve_quotes = True
+# Large width so realistic single-line values (e.g. long cmd strings) never
+# get folded across multiple lines by ruamel's default plain-scalar wrapping.
+_RUAMEL_YAML.width = 4096
 
 
 def remove_models_for_repo(content: str, repo_id: str) -> tuple[str, list[str]]:
@@ -103,8 +110,23 @@ def remove_models_for_repo(content: str, repo_id: str) -> tuple[str, list[str]]:
     return out.getvalue(), to_remove
 
 
-from dulwich import porcelain
-from dulwich.repo import Repo
+def add_model_entry(content: str, model_id: str, entry: dict) -> str:
+    """Insert a new model entry into config.yaml's `models` map.
+    Raises ValueError if model_id already exists."""
+    data = _RUAMEL_YAML.load(content)
+    if data is None:
+        data = {}
+    if "models" not in data or data["models"] is None:
+        data["models"] = {}
+    if model_id in data["models"]:
+        raise ValueError(f"model id '{model_id}' already exists")
+
+    data["models"][model_id] = entry
+
+    out = io.StringIO()
+    _RUAMEL_YAML.dump(data, out)
+    return out.getvalue()
+
 
 _HISTORY_FILENAME = "config.yaml"
 _AUTHOR = b"Swapyard <swapyard@localhost>"
@@ -160,11 +182,6 @@ def get_status(history_dir: str) -> dict | None:
         return None
     latest = revisions[0]
     return {"status": latest["status"], "timestamp": latest["timestamp"]}
-
-
-import asyncio
-
-import httpx
 
 
 class ConfigConflict(Exception):

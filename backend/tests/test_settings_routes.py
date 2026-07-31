@@ -5,28 +5,73 @@ from app.main import app
 
 
 @pytest.fixture
-def settings_client(tmp_path, monkeypatch):
+def client(tmp_path, monkeypatch):
     settings_file = tmp_path / "settings.json"
     monkeypatch.setattr("app.routes.settings.SETTINGS_PATH", str(settings_file))
     return TestClient(app)
 
 
-def test_get_settings_defaults_to_null_budget(settings_client):
-    resp = settings_client.get("/api/settings")
+def test_get_settings_returns_null_hardware_by_default(client):
+    resp = client.get("/api/settings")
     assert resp.status_code == 200
-    assert resp.json() == {"vram_budget_gb": None}
+    assert resp.json() == {"hardware": None}
 
 
-def test_put_settings_saves_and_returns_budget(settings_client):
-    resp = settings_client.put("/api/settings", json={"vram_budget_gb": 24})
+def test_put_settings_saves_gpu_profile(client):
+    resp = client.put(
+        "/api/settings",
+        json={
+            "hardware": {
+                "kind": "gpus",
+                "gpus": [{"name": "GPU 0", "vram_gb": 24.0}],
+                "system_ram_gb": 64.0,
+            }
+        },
+    )
     assert resp.status_code == 200
-    assert resp.json() == {"vram_budget_gb": 24}
+    assert resp.json()["hardware"]["kind"] == "gpus"
+    assert resp.json()["hardware"]["gpus"] == [{"name": "GPU 0", "vram_gb": 24.0}]
 
-    resp2 = settings_client.get("/api/settings")
-    assert resp2.json() == {"vram_budget_gb": 24}
+    # persisted
+    assert client.get("/api/settings").json()["hardware"]["kind"] == "gpus"
 
 
-def test_put_settings_rejects_non_positive_budget(settings_client):
-    resp = settings_client.put("/api/settings", json={"vram_budget_gb": 0})
+def test_put_settings_saves_unified_profile(client):
+    resp = client.put(
+        "/api/settings",
+        json={"hardware": {"kind": "unified", "gpus": [], "system_ram_gb": 32.0}},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["hardware"]["kind"] == "unified"
+    assert resp.json()["hardware"]["system_ram_gb"] == 32.0
+
+
+def test_put_settings_rejects_gpus_kind_with_empty_gpu_list(client):
+    resp = client.put(
+        "/api/settings",
+        json={"hardware": {"kind": "gpus", "gpus": [], "system_ram_gb": None}},
+    )
     assert resp.status_code == 422
-    assert resp.json()["error"]["code"] == "invalid_settings"
+
+
+def test_put_settings_rejects_unified_kind_without_system_ram(client):
+    resp = client.put(
+        "/api/settings",
+        json={"hardware": {"kind": "unified", "gpus": [], "system_ram_gb": None}},
+    )
+    assert resp.status_code == 422
+
+
+def test_put_settings_rejects_non_positive_gpu_vram(client):
+    payload = {
+        "hardware": {
+            "kind": "gpus",
+            "gpus": [{"name": None, "vram_gb": 0}],
+            "system_ram_gb": None,
+        }
+    }
+    resp = client.put(
+        "/api/settings",
+        json=payload,
+    )
+    assert resp.status_code == 422

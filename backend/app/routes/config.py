@@ -1,4 +1,6 @@
+import json as _json
 import os
+from pathlib import Path as _Path
 
 from fastapi import APIRouter, Response
 from starlette.responses import JSONResponse
@@ -10,16 +12,19 @@ from app.schemas import (
     ConfigResponse,
     ConfigRevisionResponse,
     ConfigStatusResponse,
+    CreateModelEntryRequest,
 )
 from app.services.config import (
     SCHEMA,
     ConfigConflict,
     ConfigInvalid,
+    add_model_entry,
     apply_config,
     get_status,
     list_revisions,
     read_config,
 )
+from app.services.model_entry import build_minimal_entry
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 
@@ -34,6 +39,11 @@ LLAMA_SWAP_URL: str | None = os.environ.get("LLAMA_SWAP_URL")
 class InvalidConfigError(SwapyardError):
     status_code = 422
     code = "invalid_config"
+
+
+class ModelIdExistsError(SwapyardError):
+    status_code = 409
+    code = "model_id_exists"
 
 
 @router.get("", response_model=ConfigResponse)
@@ -82,8 +92,34 @@ async def post_config(body: ConfigApplyRequest) -> Response:
     return ConfigApplyResponse(status=result["status"], logs=result["logs"])
 
 
-import json as _json
-from pathlib import Path as _Path
+@router.post("/models")
+async def post_config_model(body: CreateModelEntryRequest) -> Response:
+    content, digest = read_config(CONFIG_PATH)
+    entry = build_minimal_entry(body.repo_id, body.filename)
+
+    try:
+        new_content = add_model_entry(content, body.model_id, entry)
+    except ValueError as e:
+        raise ModelIdExistsError(str(e)) from e
+
+    try:
+        result = await apply_config(
+            config_path=CONFIG_PATH,
+            history_dir=HISTORY_DIR,
+            content=new_content,
+            base_hash=digest,
+            llama_swap_url=LLAMA_SWAP_URL,
+        )
+    except ConfigConflict as e:
+        return JSONResponse(
+            status_code=409,
+            content={"current_content": e.current_content, "current_hash": e.current_hash},
+        )
+    except ConfigInvalid as e:
+        raise InvalidConfigError("; ".join(e.errors)) from e
+
+    return ConfigApplyResponse(status=result["status"], logs=result["logs"])
+
 
 FLAGS_PATH: str = str(_Path(__file__).parent.parent / "llama_server_flags.json")
 

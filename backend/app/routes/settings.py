@@ -1,8 +1,19 @@
 from fastapi import APIRouter
 
 from app.errors import SwapyardError
-from app.schemas import SettingsResponse, SettingsUpdateRequest
-from app.services.settings import Settings, read_settings, write_settings
+from app.schemas import (
+    GpuDeviceSchema,
+    HardwareProfileSchema,
+    SettingsResponse,
+    SettingsUpdateRequest,
+)
+from app.services.settings import (
+    GpuDevice,
+    HardwareProfile,
+    Settings,
+    read_settings,
+    write_settings,
+)
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -14,16 +25,49 @@ class InvalidSettingsError(SwapyardError):
     code = "invalid_settings"
 
 
+def _validate(hardware: HardwareProfileSchema | None) -> None:
+    if hardware is None:
+        return
+    if hardware.kind == "gpus":
+        if not hardware.gpus:
+            raise InvalidSettingsError("at least one GPU is required when kind is 'gpus'")
+        if any(g.vram_gb <= 0 for g in hardware.gpus):
+            raise InvalidSettingsError("each GPU's vram_gb must be greater than 0")
+    if hardware.kind == "unified" and not hardware.system_ram_gb:
+        raise InvalidSettingsError("system_ram_gb is required when kind is 'unified'")
+    if hardware.system_ram_gb is not None and hardware.system_ram_gb <= 0:
+        raise InvalidSettingsError("system_ram_gb must be greater than 0")
+
+
+def _to_domain(hardware: HardwareProfileSchema | None) -> HardwareProfile | None:
+    if hardware is None:
+        return None
+    return HardwareProfile(
+        kind=hardware.kind,
+        gpus=[GpuDevice(name=g.name, vram_gb=g.vram_gb) for g in hardware.gpus],
+        system_ram_gb=hardware.system_ram_gb,
+    )
+
+
+def _to_schema(hardware: HardwareProfile | None) -> HardwareProfileSchema | None:
+    if hardware is None:
+        return None
+    return HardwareProfileSchema(
+        kind=hardware.kind,
+        gpus=[GpuDeviceSchema(name=g.name, vram_gb=g.vram_gb) for g in hardware.gpus],
+        system_ram_gb=hardware.system_ram_gb,
+    )
+
+
 @router.get("", response_model=SettingsResponse)
 async def get_settings() -> SettingsResponse:
     settings = read_settings(SETTINGS_PATH)
-    return SettingsResponse(vram_budget_gb=settings.vram_budget_gb)
+    return SettingsResponse(hardware=_to_schema(settings.hardware))
 
 
 @router.put("", response_model=SettingsResponse)
 async def update_settings(body: SettingsUpdateRequest) -> SettingsResponse:
-    if body.vram_budget_gb <= 0:
-        raise InvalidSettingsError("vram_budget_gb must be greater than 0")
-    settings = Settings(vram_budget_gb=body.vram_budget_gb)
+    _validate(body.hardware)
+    settings = Settings(hardware=_to_domain(body.hardware))
     write_settings(SETTINGS_PATH, settings)
-    return SettingsResponse(vram_budget_gb=settings.vram_budget_gb)
+    return SettingsResponse(hardware=_to_schema(settings.hardware))
