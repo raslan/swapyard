@@ -11,4 +11,6 @@ export interface HardwareProfile {
 
 export interface Settings {
   hardware: HardwareProfile | null;
+  llamaSwapUrl: string | null;
+  onboarded: boolean;
 }

@@ -62,12 +62,23 @@ def _to_schema(hardware: HardwareProfile | None) -> HardwareProfileSchema | None
 @router.get("", response_model=SettingsResponse)
 async def get_settings() -> SettingsResponse:
     settings = read_settings(SETTINGS_PATH)
-    return SettingsResponse(hardware=_to_schema(settings.hardware))
+    return SettingsResponse(
+        hardware=_to_schema(settings.hardware),
+        llama_swap_url=settings.llama_swap_url,
+        onboarded=settings.onboarded,
+    )
 
 
 @router.put("", response_model=SettingsResponse)
 async def update_settings(body: SettingsUpdateRequest) -> SettingsResponse:
     _validate(body.hardware)
-    settings = Settings(hardware=_to_domain(body.hardware))
+    # Reaching a successful save means the user has been through the settings
+    # form at least once - that's what "onboarded" means, regardless of what
+    # they chose to fill in.
+    settings = Settings(hardware=_to_domain(body.hardware), llama_swap_url=body.llama_swap_url or None, onboarded=True)
     write_settings(SETTINGS_PATH, settings)
-    return SettingsResponse(hardware=_to_schema(settings.hardware))
+    return SettingsResponse(
+        hardware=_to_schema(settings.hardware),
+        llama_swap_url=settings.llama_swap_url,
+        onboarded=settings.onboarded,
+    )

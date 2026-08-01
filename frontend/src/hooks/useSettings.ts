@@ -4,7 +4,7 @@ import { getSettings, updateSettings } from "@/lib/api";
 import type { HardwareProfile, Settings } from "@/types/settings";
 
 export function useSettings() {
-  const [settings, setSettings] = useState<Settings>({ hardware: null });
+  const [settings, setSettings] = useState<Settings>({ hardware: null, llamaSwapUrl: null, onboarded: false });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,8 +14,8 @@ export function useSettings() {
     });
   }, []);
 
-  const save = useCallback(async (hardware: HardwareProfile | null) => {
-    const updated = await updateSettings(hardware);
+  const save = useCallback(async (hardware: HardwareProfile | null, llamaSwapUrl: string | null) => {
+    const updated = await updateSettings(hardware, llamaSwapUrl);
     setSettings(updated);
   }, []);
 

@@ -12,7 +12,3 @@ services:
       # nested inside the HF cache dir above - that dir's contract is "safe
       # to delete", which the history must not inherit.
       - ./data:/app/data
-    # environment:
-    #   # Optional: enables health-verification after each config apply.
-    #   # Point this at wherever llama-swap's REST API is reachable.
-    #   - LLAMA_SWAP_URL=http://llama-swap:8080

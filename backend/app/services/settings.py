@@ -20,6 +20,8 @@ class HardwareProfile:
 @dataclass
 class Settings:
     hardware: HardwareProfile | None = None
+    llama_swap_url: str | None = None
+    onboarded: bool = False
 
 
 def _migrate_flat_vram_budget(data: dict) -> dict:
@@ -48,15 +50,20 @@ def read_settings(path: str) -> Settings:
         _write_raw(path, data)
 
     hardware_data = data.get("hardware")
+    # Files written before "onboarded" existed have no such key. Treat an
+    # already-configured profile as already onboarded, so upgrading doesn't
+    # bounce an existing user back to the first-run screen.
+    onboarded = data.get("onboarded", hardware_data is not None)
+
     if hardware_data is None:
-        return Settings(hardware=None)
+        return Settings(hardware=None, llama_swap_url=data.get("llama_swap_url"), onboarded=onboarded)
 
     hardware = HardwareProfile(
         kind=hardware_data["kind"],
         gpus=[GpuDevice(**g) for g in hardware_data.get("gpus", [])],
         system_ram_gb=hardware_data.get("system_ram_gb"),
     )
-    return Settings(hardware=hardware)
+    return Settings(hardware=hardware, llama_swap_url=data.get("llama_swap_url"), onboarded=onboarded)
 
 
 def _write_raw(path: str, data: dict) -> None:
@@ -67,4 +74,11 @@ def _write_raw(path: str, data: dict) -> None:
 
 def write_settings(path: str, settings: Settings) -> None:
     hardware_data = asdict(settings.hardware) if settings.hardware is not None else None
-    _write_raw(path, {"hardware": hardware_data})
+    _write_raw(
+        path,
+        {
+            "hardware": hardware_data,
+            "llama_swap_url": settings.llama_swap_url,
+            "onboarded": settings.onboarded,
+        },
+    )

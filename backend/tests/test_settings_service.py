@@ -10,6 +10,25 @@ from app.services.settings import (
 def test_read_settings_returns_none_hardware_when_file_missing(tmp_path):
     settings = read_settings(str(tmp_path / "missing.json"))
     assert settings.hardware is None
+    assert settings.onboarded is False
+
+
+def test_write_then_read_settings_roundtrips_onboarded(tmp_path):
+    path = str(tmp_path / "settings.json")
+    write_settings(path, Settings(hardware=None, onboarded=True))
+
+    loaded = read_settings(path)
+
+    assert loaded.onboarded is True
+
+
+def test_read_settings_treats_pre_existing_hardware_as_already_onboarded(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text('{"hardware": {"kind": "unified", "gpus": [], "system_ram_gb": 16.0}}')
+
+    loaded = read_settings(str(path))
+
+    assert loaded.onboarded is True
 
 
 def test_write_then_read_settings_roundtrips_gpu_profile(tmp_path):
@@ -41,6 +60,15 @@ def test_write_then_read_settings_roundtrips_unified_profile(tmp_path):
     assert loaded.hardware.kind == "unified"
     assert loaded.hardware.gpus == []
     assert loaded.hardware.system_ram_gb == 32.0
+
+
+def test_write_then_read_settings_roundtrips_llama_swap_url(tmp_path):
+    path = str(tmp_path / "settings.json")
+    write_settings(path, Settings(hardware=None, llama_swap_url="http://llama-swap:8080"))
+
+    loaded = read_settings(path)
+
+    assert loaded.llama_swap_url == "http://llama-swap:8080"
 
 
 def test_read_settings_migrates_old_flat_vram_budget_gb_format(tmp_path):

@@ -14,7 +14,7 @@ def client(tmp_path, monkeypatch):
 def test_get_settings_returns_null_hardware_by_default(client):
     resp = client.get("/api/settings")
     assert resp.status_code == 200
-    assert resp.json() == {"hardware": None}
+    assert resp.json() == {"hardware": None, "llama_swap_url": None, "onboarded": False}
 
 
 def test_put_settings_saves_gpu_profile(client):
@@ -44,6 +44,27 @@ def test_put_settings_saves_unified_profile(client):
     assert resp.status_code == 200
     assert resp.json()["hardware"]["kind"] == "unified"
     assert resp.json()["hardware"]["system_ram_gb"] == 32.0
+
+
+def test_put_settings_saves_llama_swap_url(client):
+    resp = client.put(
+        "/api/settings",
+        json={"hardware": None, "llama_swap_url": "http://llama-swap:8080"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["llama_swap_url"] == "http://llama-swap:8080"
+
+    # persisted
+    assert client.get("/api/settings").json()["llama_swap_url"] == "http://llama-swap:8080"
+
+
+def test_put_settings_marks_onboarded_true_on_any_save(client):
+    resp = client.put("/api/settings", json={"hardware": None, "llama_swap_url": None})
+    assert resp.status_code == 200
+    assert resp.json()["onboarded"] is True
+
+    # persisted
+    assert client.get("/api/settings").json()["onboarded"] is True
 
 
 def test_put_settings_rejects_gpus_kind_with_empty_gpu_list(client):
