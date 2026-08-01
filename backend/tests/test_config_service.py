@@ -309,6 +309,21 @@ def test_add_model_entry_inserts_new_entry_preserving_existing_content():
     assert "org/repo:Q4_K_M" in new_content
 
 
+def test_add_model_entry_inserts_blank_line_before_new_entry():
+    content = "models:\n  existing:\n    cmd: llama-server -hf a/b\n"
+    entry = {"cmd": "llama-server -hf org/repo:Q4_K_M"}
+    new_content = add_model_entry(content, "new-model", entry)
+
+    assert "cmd: llama-server -hf a/b\n\n  new-model:" in new_content
+
+
+def test_add_model_entry_no_leading_blank_line_when_models_was_empty():
+    entry = {"cmd": "llama-server -hf org/repo:Q4_K_M"}
+    new_content = add_model_entry("models: {}\n", "first-model", entry)
+
+    assert "models:\n  first-model:" in new_content
+
+
 def test_add_model_entry_raises_on_duplicate_model_id():
     content = "models:\n  existing:\n    cmd: llama-server -hf a/b\n"
 

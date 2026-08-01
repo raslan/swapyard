@@ -16,6 +16,8 @@ describe("useModelDetail", () => {
       likes: 0,
       readme: "# Hi",
       files: [],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
 
     const { result } = renderHook(() => useModelDetail("org/model"));

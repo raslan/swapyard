@@ -6,7 +6,7 @@ import type {
   LlamaServerFlag,
 } from "@/types/config";
 import type { DownloadState } from "@/types/download";
-import type { ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
+import type { DiscoverSections, ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
 import type { HardwareProfile, Settings } from "@/types/settings";
 import type { QuantEstimate } from "@/types/vram";
 
@@ -18,17 +18,52 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   return resp.status === 204 || typeof resp.json !== "function" ? (undefined as T) : ((await resp.json()) as T);
 }
 
-export async function searchModels(query: string): Promise<ModelSummary[]> {
-  const raw = await request<
-    { repo_id: string; author: string; downloads: number; likes: number; tags: string[] }[]
-  >(`/api/browse/search?q=${encodeURIComponent(query)}`);
-  return raw.map((m) => ({
+type ModelSummaryRaw = {
+  repo_id: string;
+  author: string;
+  downloads: number;
+  likes: number;
+  tags: string[];
+  pipeline_tag: string | null;
+  last_modified: number | null;
+  gated: boolean;
+  params: number | null;
+  total_size: number | null;
+};
+
+function toModelSummary(m: ModelSummaryRaw): ModelSummary {
+  return {
     repoId: m.repo_id,
     author: m.author,
     downloads: m.downloads,
     likes: m.likes,
     tags: m.tags,
-  }));
+    pipelineTag: m.pipeline_tag,
+    lastModified: m.last_modified,
+    gated: m.gated,
+    params: m.params,
+    totalSize: m.total_size,
+  };
+}
+
+export async function searchModels(query: string): Promise<ModelSummary[]> {
+  const raw = await request<ModelSummaryRaw[]>(`/api/browse/search?q=${encodeURIComponent(query)}`);
+  return raw.map(toModelSummary);
+}
+
+export async function getDiscoverSections(): Promise<DiscoverSections> {
+  const raw = await request<{
+    trending: ModelSummaryRaw[];
+    embeddings: ModelSummaryRaw[];
+    vision: ModelSummaryRaw[];
+    agentic: ModelSummaryRaw[];
+  }>("/api/browse/discover");
+  return {
+    trending: raw.trending.map(toModelSummary),
+    embeddings: raw.embeddings.map(toModelSummary),
+    vision: raw.vision.map(toModelSummary),
+    agentic: raw.agentic.map(toModelSummary),
+  };
 }
 
 export async function getModelDetail(repoId: string): Promise<ModelDetail> {
@@ -39,6 +74,8 @@ export async function getModelDetail(repoId: string): Promise<ModelDetail> {
     likes: number;
     readme: string;
     files: { name: string; size: number; category: "gguf" | "mmproj" | "other"; is_xet: boolean }[];
+    context_length: number | null;
+    recommended_sampler_params: { label: string; params: Record<string, number> }[] | null;
   }>(`/api/browse/models/${repoId}`);
   return {
     repoId: raw.repo_id,
@@ -52,6 +89,8 @@ export async function getModelDetail(repoId: string): Promise<ModelDetail> {
       category: f.category,
       isXet: f.is_xet,
     })),
+    contextLength: raw.context_length,
+    recommendedSamplerParams: raw.recommended_sampler_params,
   };
 }
 
@@ -79,6 +118,12 @@ export async function listManagedModels(sort: "size" | "name"): Promise<ManagedM
 export async function deleteManagedModel(repoId: string, removeConfigEntries = false): Promise<void> {
   const query = removeConfigEntries ? "?remove_config_entries=true" : "";
   await request<void>(`/api/manage/models/${repoId}${query}`, { method: "DELETE" });
+}
+
+export async function deleteManagedModelFile(repoId: string, filename: string): Promise<void> {
+  await request<void>(`/api/manage/models/${repoId}/files/${encodeURIComponent(filename)}`, {
+    method: "DELETE",
+  });
 }
 
 export async function startDownload(
@@ -202,11 +247,32 @@ export async function createConfigEntry(
   repoId: string,
   filename: string,
   modelId: string,
+  options?: {
+    contextSize?: number;
+    cacheType?: string;
+    samplerParams?: Record<string, number>;
+    reasoning?: "on" | "off";
+    reasoningBudget?: number;
+    reasoningBudgetMessage?: string;
+  },
 ): Promise<ApplyConfigResult> {
   const resp = await fetch("/api/config/models", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ repo_id: repoId, filename, model_id: modelId }),
+    body: JSON.stringify({
+      repo_id: repoId,
+      filename,
+      model_id: modelId,
+      context_size: options?.contextSize ?? null,
+      cache_type: options?.cacheType ?? null,
+      sampler_params:
+        options?.samplerParams && Object.keys(options.samplerParams).length > 0
+          ? options.samplerParams
+          : null,
+      reasoning: options?.reasoning ?? null,
+      reasoning_budget: options?.reasoningBudget ?? null,
+      reasoning_budget_message: options?.reasoningBudgetMessage ?? null,
+    }),
   });
 
   if (resp.status === 409) {
@@ -248,18 +314,27 @@ function toHardwareRaw(hardware: HardwareProfile | null) {
   };
 }
 
+type SettingsRaw = {
+  hardware: Parameters<typeof toHardware>[0];
+  llama_swap_url: string | null;
+  onboarded: boolean;
+};
+
 export async function getSettings(): Promise<Settings> {
-  const raw = await request<{ hardware: Parameters<typeof toHardware>[0] }>("/api/settings");
-  return { hardware: toHardware(raw.hardware) };
+  const raw = await request<SettingsRaw>("/api/settings");
+  return { hardware: toHardware(raw.hardware), llamaSwapUrl: raw.llama_swap_url, onboarded: raw.onboarded };
 }
 
-export async function updateSettings(hardware: HardwareProfile | null): Promise<Settings> {
-  const raw = await request<{ hardware: Parameters<typeof toHardware>[0] }>("/api/settings", {
+export async function updateSettings(
+  hardware: HardwareProfile | null,
+  llamaSwapUrl: string | null,
+): Promise<Settings> {
+  const raw = await request<SettingsRaw>("/api/settings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ hardware: toHardwareRaw(hardware) }),
+    body: JSON.stringify({ hardware: toHardwareRaw(hardware), llama_swap_url: llamaSwapUrl }),
   });
-  return { hardware: toHardware(raw.hardware) };
+  return { hardware: toHardware(raw.hardware), llamaSwapUrl: raw.llama_swap_url, onboarded: raw.onboarded };
 }
 
 export async function getVramEstimate(repoId: string): Promise<QuantEstimate[]> {

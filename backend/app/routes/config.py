@@ -1,11 +1,11 @@
 import json as _json
-import os
 from pathlib import Path as _Path
 
 from fastapi import APIRouter, Response
 from starlette.responses import JSONResponse
 
 from app.errors import SwapyardError
+from app.routes.settings import SETTINGS_PATH
 from app.schemas import (
     ConfigApplyRequest,
     ConfigApplyResponse,
@@ -24,7 +24,8 @@ from app.services.config import (
     list_revisions,
     read_config,
 )
-from app.services.model_entry import build_minimal_entry
+from app.services.model_entry import build_minimal_entry, cache_type_options
+from app.services.settings import read_settings
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 
@@ -33,7 +34,6 @@ router = APIRouter(prefix="/api/config", tags=["config"])
 # Tests override via monkeypatch, same pattern as routes/manage.py's CACHE_DIR.
 CONFIG_PATH: str = "/app/llama-swap-config.yaml"
 HISTORY_DIR: str = "/app/data/config-history"
-LLAMA_SWAP_URL: str | None = os.environ.get("LLAMA_SWAP_URL")
 
 
 class InvalidConfigError(SwapyardError):
@@ -79,7 +79,7 @@ async def post_config(body: ConfigApplyRequest) -> Response:
             history_dir=HISTORY_DIR,
             content=body.content,
             base_hash=body.base_hash,
-            llama_swap_url=LLAMA_SWAP_URL,
+            llama_swap_url=read_settings(SETTINGS_PATH).llama_swap_url,
         )
     except ConfigConflict as e:
         return JSONResponse(
@@ -94,8 +94,22 @@ async def post_config(body: ConfigApplyRequest) -> Response:
 
 @router.post("/models")
 async def post_config_model(body: CreateModelEntryRequest) -> Response:
+    if body.cache_type is not None:
+        allowed = cache_type_options(_load_flags())
+        if allowed and body.cache_type not in allowed:
+            raise InvalidConfigError(f"cache_type must be one of: {', '.join(allowed)}")
+
     content, digest = read_config(CONFIG_PATH)
-    entry = build_minimal_entry(body.repo_id, body.filename)
+    entry = build_minimal_entry(
+        body.repo_id,
+        body.filename,
+        context_size=body.context_size,
+        cache_type=body.cache_type,
+        sampler_params=body.sampler_params,
+        reasoning=body.reasoning,
+        reasoning_budget=body.reasoning_budget,
+        reasoning_budget_message=body.reasoning_budget_message,
+    )
 
     try:
         new_content = add_model_entry(content, body.model_id, entry)
@@ -108,7 +122,7 @@ async def post_config_model(body: CreateModelEntryRequest) -> Response:
             history_dir=HISTORY_DIR,
             content=new_content,
             base_hash=digest,
-            llama_swap_url=LLAMA_SWAP_URL,
+            llama_swap_url=read_settings(SETTINGS_PATH).llama_swap_url,
         )
     except ConfigConflict as e:
         return JSONResponse(
@@ -124,9 +138,13 @@ async def post_config_model(body: CreateModelEntryRequest) -> Response:
 FLAGS_PATH: str = str(_Path(__file__).parent.parent / "llama_server_flags.json")
 
 
-@router.get("/flags")
-async def get_config_flags() -> list[dict]:
+def _load_flags() -> list[dict]:
     path = _Path(FLAGS_PATH)
     if not path.exists():
         return []
     return _json.loads(path.read_text())
+
+
+@router.get("/flags")
+async def get_config_flags() -> list[dict]:
+    return _load_flags()

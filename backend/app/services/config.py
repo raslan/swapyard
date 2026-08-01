@@ -121,6 +121,11 @@ def add_model_entry(content: str, model_id: str, entry: dict) -> str:
     if model_id in data["models"]:
         raise ValueError(f"model id '{model_id}' already exists")
 
+    # Blank line before the new entry so it doesn't render stuck to the previous one -
+    # skip it when models is empty, so we don't leave a leading blank line under `models:`.
+    if data["models"]:
+        data["models"].yaml_set_comment_before_after_key(model_id, before="\n")
+
     data["models"][model_id] = entry
 
     out = io.StringIO()

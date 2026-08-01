@@ -3,6 +3,23 @@ import { parseDocument } from "yaml";
 
 import type { LlamaServerFlag } from "@/types/config";
 
+// Mirrors backend/app/services/model_entry.py's parse_allowed_values - both read the
+// same llama_server_flags.json description text (e.g. "...allowed values: f32, f16,
+// bf16, q8_0, ... (default: f16)"), so a flag's enum options come from one real source
+// (the actual llama-server binary's --help output) instead of two hand-copied lists
+// that could silently drift apart.
+const ALLOWED_VALUES_RE = /allowed values:\s*([^(]+)/i;
+
+/** Extracts the comma-separated "allowed values: ..." list from a flag's description. */
+export function parseAllowedValues(description: string): string[] {
+  const match = description.match(ALLOWED_VALUES_RE);
+  if (!match) return [];
+  return match[1]
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
 /** True if `offset` falls inside the *value* of some `models.*.cmd` scalar. */
 export function isInsideCmdBlock(content: string, offset: number): boolean {
   const doc = parseDocument(content);

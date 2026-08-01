@@ -29,6 +29,18 @@ class ModelSummaryResponse(BaseModel):
     downloads: int
     likes: int
     tags: list[str]
+    pipeline_tag: str | None = None
+    last_modified: float | None = None
+    gated: bool = False
+    params: int | None = None
+    total_size: int | None = None
+
+
+class DiscoverResponse(BaseModel):
+    trending: list[ModelSummaryResponse]
+    embeddings: list[ModelSummaryResponse]
+    vision: list[ModelSummaryResponse]
+    agentic: list[ModelSummaryResponse]
 
 
 class ModelFileResponse(BaseModel):
@@ -38,6 +50,11 @@ class ModelFileResponse(BaseModel):
     is_xet: bool = False
 
 
+class SamplerRecommendationResponse(BaseModel):
+    label: str
+    params: dict[str, float]
+
+
 class ModelDetailResponse(BaseModel):
     repo_id: str
     author: str
@@ -45,6 +62,8 @@ class ModelDetailResponse(BaseModel):
     likes: int
     readme: str
     files: list[ModelFileResponse]
+    context_length: int | None = None
+    recommended_sampler_params: list[SamplerRecommendationResponse] | None = None
 
 
 class StartDownloadRequest(BaseModel):
@@ -79,6 +98,12 @@ class CreateModelEntryRequest(BaseModel):
     repo_id: str
     filename: str
     model_id: str
+    context_size: int | None = None
+    cache_type: str | None = None
+    sampler_params: dict[str, float] | None = None
+    reasoning: Literal["on", "off"] | None = None
+    reasoning_budget: int | None = None
+    reasoning_budget_message: str | None = None
 
 
 class ConfigApplyResponse(BaseModel):
@@ -100,10 +125,13 @@ class ConfigStatusResponse(BaseModel):
 
 class SettingsResponse(BaseModel):
     hardware: HardwareProfileSchema | None
+    llama_swap_url: str | None = None
+    onboarded: bool = False
 
 
 class SettingsUpdateRequest(BaseModel):
     hardware: HardwareProfileSchema | None
+    llama_swap_url: str | None = None
 
 
 class QuantEstimateResponse(BaseModel):

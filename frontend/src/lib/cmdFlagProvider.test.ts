@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { isInsideCmdBlock } from "./cmdFlagProvider";
+import { isInsideCmdBlock, parseAllowedValues } from "./cmdFlagProvider";
+
+describe("parseAllowedValues", () => {
+  it("extracts the comma-separated list from an enum-valued flag's description", () => {
+    const description =
+      "KV cache data type for K allowed values: f32, f16, bf16, q8_0, q4_0, q4_1, iq4_nl, q5_0, q5_1 (default: f16)";
+    expect(parseAllowedValues(description)).toEqual([
+      "f32", "f16", "bf16", "q8_0", "q4_0", "q4_1", "iq4_nl", "q5_0", "q5_1",
+    ]);
+  });
+
+  it("returns an empty array for a non-enum flag", () => {
+    expect(parseAllowedValues("number of tokens to predict (default: -1)")).toEqual([]);
+  });
+});
 
 describe("isInsideCmdBlock", () => {
   const content = [

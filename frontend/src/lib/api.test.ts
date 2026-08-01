@@ -12,6 +12,7 @@ import {
   getConfigHistory,
   getConfigSchema,
   getConfigStatus,
+  getDiscoverSections,
   getSettings,
   getVramEstimate,
   listManagedModels,
@@ -28,7 +29,20 @@ describe("searchModels", () => {
   it("fetches and camel-cases results", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [{ repo_id: "org/model", author: "org", downloads: 5, likes: 1, tags: ["gguf"] }],
+      json: async () => [
+        {
+          repo_id: "org/model",
+          author: "org",
+          downloads: 5,
+          likes: 1,
+          tags: ["gguf"],
+          pipeline_tag: "text-generation",
+          last_modified: 1700000000,
+          gated: true,
+          params: 8_953_803_264,
+          total_size: 17_920_696_512,
+        },
+      ],
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -36,7 +50,64 @@ describe("searchModels", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/browse/search?q=llama");
     expect(results).toEqual([
-      { repoId: "org/model", author: "org", downloads: 5, likes: 1, tags: ["gguf"] },
+      {
+        repoId: "org/model",
+        author: "org",
+        downloads: 5,
+        likes: 1,
+        tags: ["gguf"],
+        pipelineTag: "text-generation",
+        lastModified: 1700000000,
+        gated: true,
+        params: 8_953_803_264,
+        totalSize: 17_920_696_512,
+      },
+    ]);
+  });
+});
+
+describe("getDiscoverSections", () => {
+  it("fetches and camel-cases sectioned results", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        trending: [
+          {
+            repo_id: "org/model",
+            author: "org",
+            downloads: 5,
+            likes: 1,
+            tags: ["gguf"],
+            pipeline_tag: null,
+            last_modified: null,
+            gated: false,
+            params: null,
+            total_size: null,
+          },
+        ],
+        embeddings: [],
+        vision: [],
+        agentic: [],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getDiscoverSections();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/browse/discover");
+    expect(result.trending).toEqual([
+      {
+        repoId: "org/model",
+        author: "org",
+        downloads: 5,
+        likes: 1,
+        tags: ["gguf"],
+        pipelineTag: null,
+        lastModified: null,
+        gated: false,
+        params: null,
+        totalSize: null,
+      },
     ]);
   });
 });
@@ -223,6 +294,7 @@ describe("getSettings", () => {
           gpus: [{ name: "GPU 0", vram_gb: 24 }],
           system_ram_gb: 64,
         },
+        llama_swap_url: "http://llama-swap:8080",
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -234,36 +306,40 @@ describe("getSettings", () => {
       gpus: [{ name: "GPU 0", vramGb: 24 }],
       systemRamGb: 64,
     });
+    expect(settings.llamaSwapUrl).toBe("http://llama-swap:8080");
   });
 
-  it("getSettings maps null hardware", async () => {
+  it("getSettings maps null hardware and null llama-swap URL", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ hardware: null }),
+      json: async () => ({ hardware: null, llama_swap_url: null }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
     const settings = await getSettings();
 
     expect(settings.hardware).toBeNull();
+    expect(settings.llamaSwapUrl).toBeNull();
   });
 });
 
 describe("updateSettings", () => {
-  it("updateSettings sends camelCase hardware as snake_case body", async () => {
+  it("updateSettings sends camelCase hardware as snake_case body, alongside llama_swap_url", async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         hardware: { kind: "unified", gpus: [], system_ram_gb: 32 },
+        llama_swap_url: "http://llama-swap:8080",
       }),
     });
     vi.stubGlobal("fetch", fetchSpy);
 
-    await updateSettings({ kind: "unified", gpus: [], systemRamGb: 32 });
+    await updateSettings({ kind: "unified", gpus: [], systemRamGb: 32 }, "http://llama-swap:8080");
 
     const body = JSON.parse(fetchSpy.mock.calls[0][1].body as string);
     expect(body).toEqual({
       hardware: { kind: "unified", gpus: [], system_ram_gb: 32 },
+      llama_swap_url: "http://llama-swap:8080",
     });
   });
 });
@@ -311,9 +387,109 @@ describe("createConfigEntry", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/config/models", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repo_id: "org/repo", filename: "model-Q4_K_M.gguf", model_id: "my-model" }),
+      body: JSON.stringify({
+        repo_id: "org/repo",
+        filename: "model-Q4_K_M.gguf",
+        model_id: "my-model",
+        context_size: null,
+        cache_type: null,
+        sampler_params: null,
+        reasoning: null,
+        reasoning_budget: null,
+        reasoning_budget_message: null,
+      }),
     });
     expect(result).toEqual({ status: "unverified", logs: null });
+  });
+
+  it("posts context_size and cache_type when given", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "unverified", logs: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createConfigEntry("org/repo", "model-Q4_K_M.gguf", "my-model", {
+      contextSize: 8192,
+      cacheType: "f16",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        repo_id: "org/repo",
+        filename: "model-Q4_K_M.gguf",
+        model_id: "my-model",
+        context_size: 8192,
+        cache_type: "f16",
+        sampler_params: null,
+        reasoning: null,
+        reasoning_budget: null,
+        reasoning_budget_message: null,
+      }),
+    });
+  });
+
+  it("posts sampler_params when given a non-empty object", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "unverified", logs: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createConfigEntry("org/repo", "model-Q4_K_M.gguf", "my-model", {
+      samplerParams: { temperature: 0.7, top_p: 0.8 },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        repo_id: "org/repo",
+        filename: "model-Q4_K_M.gguf",
+        model_id: "my-model",
+        context_size: null,
+        cache_type: null,
+        sampler_params: { temperature: 0.7, top_p: 0.8 },
+        reasoning: null,
+        reasoning_budget: null,
+        reasoning_budget_message: null,
+      }),
+    });
+  });
+
+  it("posts reasoning controls when given", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "unverified", logs: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createConfigEntry("org/repo", "model-Q4_K_M.gguf", "my-model", {
+      reasoning: "on",
+      reasoningBudget: 2048,
+      reasoningBudgetMessage: "Final Answer:",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/models", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        repo_id: "org/repo",
+        filename: "model-Q4_K_M.gguf",
+        model_id: "my-model",
+        context_size: null,
+        cache_type: null,
+        sampler_params: null,
+        reasoning: "on",
+        reasoning_budget: 2048,
+        reasoning_budget_message: "Final Answer:",
+      }),
+    });
   });
 
   it("throws an error on 409 model-id collision", async () => {

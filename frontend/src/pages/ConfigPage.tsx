@@ -103,7 +103,7 @@ export function ConfigPage() {
       <div className="px-10 pt-10 pb-4 flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight mb-1.5">
-            <span className="text-gradient-animate">Config</span>
+            Config
           </h1>
           <p className="text-sm text-text-secondary">Edit llama-swap's config.yaml directly.</p>
         </div>
@@ -197,7 +197,7 @@ export function ConfigPage() {
           value={content}
           onChange={(v) => setContent(v ?? "")}
           options={{
-            fontFamily: "'JetBrainsMono Nerd Font', 'JetBrains Mono', monospace",
+            fontFamily: "'Geist Mono', monospace",
             fontLigatures: true,
             minimap: { enabled: false },
           }}

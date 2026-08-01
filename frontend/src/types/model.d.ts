@@ -4,6 +4,18 @@ export interface ModelSummary {
   downloads: number;
   likes: number;
   tags: string[];
+  pipelineTag: string | null;
+  lastModified: number | null;
+  gated: boolean;
+  params: number | null;
+  totalSize: number | null;
+}
+
+export interface DiscoverSections {
+  trending: ModelSummary[];
+  embeddings: ModelSummary[];
+  vision: ModelSummary[];
+  agentic: ModelSummary[];
 }
 
 export interface ModelFile {
@@ -20,6 +32,8 @@ export interface ModelDetail {
   likes: number;
   readme: string;
   files: ModelFile[];
+  contextLength: number | null;
+  recommendedSamplerParams: { label: string; params: Record<string, number> }[] | null;
 }
 
 export interface ManagedModel {
