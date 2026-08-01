@@ -8,48 +8,89 @@ import { useModelSearch } from "./useModelSearch";
 afterEach(() => vi.restoreAllMocks());
 
 describe("useModelSearch", () => {
-  it("loads results on mount", async () => {
+  it("does not search when the query is empty", async () => {
+    const spy = vi.spyOn(api, "searchModels").mockResolvedValue([]);
+
+    const { result } = renderHook(() => useModelSearch(""));
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.results).toEqual([]);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("searches once given a non-empty query", async () => {
     vi.spyOn(api, "searchModels").mockResolvedValue([
-      { repoId: "org/model", author: "org", downloads: 1, likes: 0, tags: [] },
+      {
+        repoId: "org/model",
+        author: "org",
+        downloads: 1,
+        likes: 0,
+        tags: [],
+        pipelineTag: null,
+        lastModified: null,
+        gated: false,
+        params: null,
+        totalSize: null,
+      },
     ]);
 
-    const { result } = renderHook(() => useModelSearch());
+    const { result, rerender } = renderHook(({ query }) => useModelSearch(query), {
+      initialProps: { query: "" },
+    });
+    rerender({ query: "llama" });
 
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.results).toHaveLength(1);
+    await waitFor(() => expect(result.current.results).toHaveLength(1), { timeout: 1000 });
+  });
+
+  it("masks stale results once the query goes back to empty", async () => {
+    vi.spyOn(api, "searchModels").mockResolvedValue([
+      {
+        repoId: "org/model",
+        author: "org",
+        downloads: 1,
+        likes: 0,
+        tags: [],
+        pipelineTag: null,
+        lastModified: null,
+        gated: false,
+        params: null,
+        totalSize: null,
+      },
+    ]);
+
+    const { result, rerender } = renderHook(({ query }) => useModelSearch(query), {
+      initialProps: { query: "llama" },
+    });
+    await waitFor(() => expect(result.current.results).toHaveLength(1), { timeout: 1000 });
+
+    rerender({ query: "" });
+    expect(result.current.results).toEqual([]);
   });
 
   it("debounces query changes before searching again", async () => {
     const spy = vi.spyOn(api, "searchModels").mockResolvedValue([]);
     vi.useFakeTimers();
 
-    const { result } = renderHook(() => useModelSearch());
-    // Mount's query="" effect schedules its fetch via setTimeout(fn, 0). Fake
-    // timers were installed before render, so that 0ms timer is captured by
-    // the fake queue and will NOT fire on its own — it must be advanced
-    // explicitly (and while it's still pending, before setQuery's effect
-    // cleanup clears it out from under us). Use the async variant so the
-    // microtask chain (searchModels().then/.finally) is flushed within act,
-    // avoiding "not wrapped in act(...)" warnings.
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
+    const { rerender } = renderHook(({ query }) => useModelSearch(query), {
+      initialProps: { query: "" },
     });
 
     await act(async () => {
-      result.current.setQuery("llama");
+      rerender({ query: "llama" });
     });
+    expect(spy).not.toHaveBeenCalled();
 
-    expect(spy).toHaveBeenCalledTimes(1); // only the initial mount call so far
-    // Note: plain `waitFor` polls via a real setInterval, which is itself
-    // captured by fake timers here and never ticks on its own — it would
-    // hang until the test timeout. The searchModels() call happens
-    // synchronously inside the timer callback, so advancing time already
-    // guarantees the call has happened; no polling wait is needed.
+    await act(async () => {
+      rerender({ query: "llama3" });
+    });
+    // Still within the debounce window from the first keystroke - not searched yet.
+    expect(spy).not.toHaveBeenCalled();
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(300);
     });
-    expect(spy).toHaveBeenCalledTimes(2);
-    expect(spy).toHaveBeenLastCalledWith("llama");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenLastCalledWith("llama3");
 
     vi.useRealTimers();
   });

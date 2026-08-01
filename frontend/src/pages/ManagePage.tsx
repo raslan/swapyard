@@ -17,7 +17,7 @@ import { useManagedModels } from "@/hooks/useManagedModels";
 import type { DownloadState } from "@/types/download";
 
 export function ManagePage() {
-  const { models, sort, setSort, remove, refetch } = useManagedModels();
+  const { models, sort, setSort, remove, removeFile, refetch } = useManagedModels();
   const { downloads, cancel } = useDownloads();
   const navigate = useNavigate();
 
@@ -48,7 +48,7 @@ export function ManagePage() {
       <div className="px-10 pt-10 pb-4 flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight mb-1.5">
-            <span className="text-gradient-animate">Manage</span>
+            Manage
           </h1>
           <p className="text-sm text-text-secondary">Your downloaded models.</p>
         </div>
@@ -67,7 +67,7 @@ export function ManagePage() {
       <div className="px-10 flex-1 overflow-y-auto">
         {isEmpty && (
           <div className="text-center py-24">
-            <div className="w-20 h-20 rounded-2xl bg-dark border border-edge flex items-center justify-center mx-auto mb-5">
+            <div className="w-20 h-20 rounded-lg bg-dark border border-edge flex items-center justify-center mx-auto mb-5">
               <HardDrive className="w-8 h-8 text-text-muted" />
             </div>
             <h3 className="font-display text-xl font-semibold text-text-primary mb-2">
@@ -107,6 +107,7 @@ export function ManagePage() {
                 <ManageRow
                   model={m}
                   onDelete={(removeConfigEntries) => remove(m.repoId, removeConfigEntries)}
+                  onDeleteFile={(filename) => removeFile(m.repoId, filename)}
                 />
               </motion.div>
             ))}

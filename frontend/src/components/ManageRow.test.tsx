@@ -1,13 +1,30 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import * as api from "@/lib/api";
 import type { ManagedModel } from "@/types/model";
 
 import { ManageRow } from "./ManageRow";
 
 afterEach(() => vi.restoreAllMocks());
+
+beforeEach(() => {
+  // The create-entry dialog (CreateConfigEntryDialog) fetches these on open - without
+  // mocks jsdom's fetch throws on the relative URLs, same pattern as BrowseDetailPage.test.tsx.
+  vi.spyOn(api, "getConfigFlags").mockResolvedValue([]);
+  vi.spyOn(api, "getModelDetail").mockResolvedValue({
+    repoId: "org/model",
+    author: "org",
+    downloads: 0,
+    likes: 0,
+    readme: "",
+    files: [],
+    contextLength: null,
+    recommendedSamplerParams: null,
+  });
+});
 
 const baseModel: ManagedModel = {
   repoId: "org/model",
@@ -18,70 +35,61 @@ const baseModel: ManagedModel = {
   configEntries: [],
 };
 
+function renderRow(model: ManagedModel, onDelete = vi.fn(), onDeleteFile = vi.fn()) {
+  return render(
+    <TooltipProvider>
+      <ManageRow model={model} onDelete={onDelete} onDeleteFile={onDeleteFile} />
+    </TooltipProvider>,
+  );
+}
+
 describe("ManageRow", () => {
   it("shows a Create config entry action when the model has no config entries", () => {
-    render(<ManageRow model={{ ...baseModel, configEntries: [] }} onDelete={vi.fn()} />);
+    renderRow({ ...baseModel, configEntries: [] });
     expect(screen.getByRole("button", { name: /create config entry/i })).toBeInTheDocument();
   });
 
   it("does not show the action when the model already has config entries", () => {
-    render(<ManageRow model={{ ...baseModel, configEntries: ["existing"] }} onDelete={vi.fn()} />);
+    renderRow({ ...baseModel, configEntries: ["existing"] });
     expect(screen.queryByRole("button", { name: /create config entry/i })).not.toBeInTheDocument();
   });
 
-  it("submitting the dialog calls createConfigEntry with the chosen file and model id", async () => {
-    const createSpy = vi
-      .spyOn(api, "createConfigEntry")
-      .mockResolvedValue({ status: "unverified", logs: null });
-    render(
-      <ManageRow
-        model={{ ...baseModel, configEntries: [], ggufFiles: ["model-Q4_K_M.gguf"] }}
-        onDelete={vi.fn()}
-      />,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /create config entry/i }));
-    const modelIdInput = screen.getByLabelText(/model id/i);
-    await userEvent.clear(modelIdInput);
-    await userEvent.type(modelIdInput, "my-model");
-    await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
-
-    expect(createSpy).toHaveBeenCalledWith(baseModel.repoId, "model-Q4_K_M.gguf", "my-model");
+  it("does not offer per-quant delete when there is only one quant", () => {
+    renderRow({ ...baseModel, ggufFiles: ["org-model.Q4_K_M.gguf"] });
+    expect(screen.queryByRole("button", { name: /delete org-model.Q4_K_M.gguf/i })).not.toBeInTheDocument();
   });
 
-  it("defaults the model id to the last path segment of the repo id", async () => {
-    render(
-      <ManageRow
-        model={{ ...baseModel, repoId: "org/cool-model", configEntries: [] }}
-        onDelete={vi.fn()}
-      />,
+  it("deletes only the selected quant after confirming, when there are multiple", async () => {
+    const onDeleteFile = vi.fn();
+    const user = userEvent.setup();
+    renderRow(
+      { ...baseModel, ggufFiles: ["org-model.Q4_K_M.gguf", "org-model.Q8_0.gguf"] },
+      vi.fn(),
+      onDeleteFile,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /create config entry/i }));
+    await user.click(screen.getByRole("button", { name: /delete org-model.q4_k_m.gguf/i }));
+    expect(await screen.findByText(/delete this quant/i)).toBeInTheDocument();
+    expect(screen.getByText("org-model.Q4_K_M.gguf")).toBeInTheDocument();
 
-    expect(screen.getByLabelText(/model id/i)).toHaveValue("cool-model");
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    expect(onDeleteFile).toHaveBeenCalledWith("org-model.Q4_K_M.gguf");
+    expect(onDeleteFile).toHaveBeenCalledTimes(1);
   });
 
-  it("shows a file picker when the model has multiple gguf files, and submits the chosen one", async () => {
-    const createSpy = vi
-      .spyOn(api, "createConfigEntry")
-      .mockResolvedValue({ status: "unverified", logs: null });
-    render(
-      <ManageRow
-        model={{
-          ...baseModel,
-          configEntries: [],
-          ggufFiles: ["model-Q4_K_M.gguf", "model-Q8_0.gguf"],
-        }}
-        onDelete={vi.fn()}
-      />,
+  it("does not delete when the per-quant confirmation is cancelled", async () => {
+    const onDeleteFile = vi.fn();
+    const user = userEvent.setup();
+    renderRow(
+      { ...baseModel, ggufFiles: ["org-model.Q4_K_M.gguf", "org-model.Q8_0.gguf"] },
+      vi.fn(),
+      onDeleteFile,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /create config entry/i }));
-    await userEvent.click(screen.getByRole("combobox"));
-    await userEvent.click(screen.getByRole("option", { name: /Q8_0/i }));
-    await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /delete org-model.q4_k_m.gguf/i }));
+    await user.click(await screen.findByRole("button", { name: /cancel/i }));
 
-    expect(createSpy).toHaveBeenCalledWith(baseModel.repoId, "model-Q8_0.gguf", expect.any(String));
+    expect(onDeleteFile).not.toHaveBeenCalled();
   });
 });

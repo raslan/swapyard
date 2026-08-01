@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { formatEta, formatNumber, formatQuantLabel, formatSize, formatSpeed } from "./format";
+import {
+  formatEta,
+  formatNumber,
+  formatParamCount,
+  formatQuantLabel,
+  formatRelativeTime,
+  formatSize,
+  formatSpeed,
+} from "./format";
 
 describe("formatSize", () => {
   it("formats bytes", () => {
@@ -37,6 +45,25 @@ describe("formatEta", () => {
   it("returns empty string when rate or remaining bytes is zero", () => {
     expect(formatEta(100, 0)).toBe("");
     expect(formatEta(0, 10)).toBe("");
+  });
+});
+
+describe("formatParamCount", () => {
+  it("formats billions and millions of params", () => {
+    expect(formatParamCount(8_953_803_264)).toBe("9.0B");
+    expect(formatParamCount(500_000_000)).toBe("500M");
+    expect(formatParamCount(999)).toBe("999");
+  });
+});
+
+describe("formatRelativeTime", () => {
+  it("formats recent, day-scale, and month-scale timestamps", () => {
+    const now = Date.now() / 1000;
+    expect(formatRelativeTime(now - 60)).toBe("just now");
+    expect(formatRelativeTime(now - 3600 * 5)).toBe("5h ago");
+    expect(formatRelativeTime(now - 3600 * 24 * 3)).toBe("3d ago");
+    expect(formatRelativeTime(now - 3600 * 24 * 60)).toBe("2mo ago");
+    expect(formatRelativeTime(now - 3600 * 24 * 400)).toBe("1y ago");
   });
 });
 

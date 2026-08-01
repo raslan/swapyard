@@ -26,7 +26,7 @@ export function Sidebar() {
   return (
     <aside
       data-testid="sidebar"
-      className={`${collapsed ? "w-16" : "w-56"} bg-abyss/80 backdrop-blur-xl border-r border-surface/40 flex flex-col shrink-0 relative overflow-hidden transition-[width] duration-200`}
+      className={`${collapsed ? "w-16" : "w-56"} bg-abyss border-r border-surface/40 flex flex-col shrink-0 relative overflow-hidden transition-[width] duration-200`}
     >
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.03] z-0"
@@ -37,7 +37,6 @@ export function Sidebar() {
           backgroundSize: "256px 256px",
         }}
       />
-      <div className="absolute inset-0 pointer-events-none z-0 bg-linear-to-b from-cyan/5 via-transparent to-transparent" />
       <div className="px-5 py-5 border-b border-surface/40 relative z-10">
         <button
           data-testid="sidebar-toggle"

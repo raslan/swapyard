@@ -3,7 +3,7 @@ from fastapi import APIRouter, Response
 from app.routes import config as config_routes
 from app.schemas import ManagedModelResponse
 from app.services.config import commit_revision, model_refs, read_config, remove_models_for_repo
-from app.services.manage import delete_managed_model, list_managed_models
+from app.services.manage import delete_managed_model, delete_managed_model_file, list_managed_models
 
 router = APIRouter(prefix="/api/manage", tags=["manage"])
 
@@ -32,6 +32,16 @@ async def get_managed_models(sort: str = "size") -> list[ManagedModelResponse]:
         ManagedModelResponse(**m.__dict__, config_entries=by_repo.get(m.repo_id, []))
         for m in models
     ]
+
+
+# Registered before the bare /models/{repo_id:path} route below - repo ids contain "/"
+# so {repo_id:path} greedily matches everything, including a trailing "/files/x.gguf";
+# if that route were declared first it would shadow this one and no request would ever
+# reach here. Order-of-registration is how Starlette resolves the overlap.
+@router.delete("/models/{repo_id:path}/files/{filename}", status_code=204)
+async def remove_managed_model_file(repo_id: str, filename: str) -> Response:
+    delete_managed_model_file(repo_id, filename, cache_dir=CACHE_DIR)
+    return Response(status_code=204)
 
 
 @router.delete("/models/{repo_id:path}", status_code=204)

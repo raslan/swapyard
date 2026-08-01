@@ -1,10 +1,16 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from huggingface_hub import snapshot_download
 
 from app.errors import NotFoundError
-from app.services.manage import delete_managed_model, list_managed_models
+from app.services.manage import (
+    _gguf_files,
+    delete_managed_model,
+    delete_managed_model_file,
+    list_managed_models,
+)
 
 
 @pytest.fixture
@@ -73,6 +79,20 @@ def test_list_managed_models_multiple_gguf_files_union_and_sorted(
     ]
 
 
+def test_gguf_files_excludes_mmproj():
+    repo = SimpleNamespace(
+        revisions=[
+            SimpleNamespace(
+                files=[
+                    SimpleNamespace(file_name="qwen3.5-0.8b-Q4_K_M.gguf"),
+                    SimpleNamespace(file_name="mmproj-qwen3.5-0.8b-f16.gguf"),
+                ]
+            )
+        ]
+    )
+    assert _gguf_files(repo) == ["qwen3.5-0.8b-Q4_K_M.gguf"]
+
+
 @pytest.fixture
 def seeded_cache_two_repos(seeded_cache: Path) -> Path:
     """Add a second repo to the seeded cache whose name sorts before
@@ -123,3 +143,47 @@ def test_delete_managed_model_removes_repo(seeded_cache: Path):
 def test_delete_managed_model_missing_raises(seeded_cache: Path):
     with pytest.raises(NotFoundError):
         delete_managed_model("nonexistent/repo", cache_dir=str(seeded_cache))
+
+
+def test_delete_managed_model_file_removes_only_that_quant(seeded_cache_multiple_gguf: Path):
+    delete_managed_model_file(
+        "mradermacher/TinyStories-656K-GGUF",
+        "TinyStories-656K.Q2_K.gguf",
+        cache_dir=str(seeded_cache_multiple_gguf),
+    )
+
+    models = list_managed_models(cache_dir=str(seeded_cache_multiple_gguf))
+    assert len(models) == 1
+    assert models[0].gguf_files == ["TinyStories-656K.IQ4_XS.gguf"]
+
+
+def test_delete_managed_model_file_removes_whole_repo_when_it_was_the_last_file(
+    seeded_cache_single_gguf: Path,
+):
+    delete_managed_model_file(
+        "raincandy-u/TinyStories-656K-Q8_0-GGUF",
+        "tinystories-656k-q8_0.gguf",
+        cache_dir=str(seeded_cache_single_gguf),
+    )
+
+    assert list_managed_models(cache_dir=str(seeded_cache_single_gguf)) == []
+
+
+def test_delete_managed_model_file_missing_repo_raises(seeded_cache: Path):
+    with pytest.raises(NotFoundError):
+        delete_managed_model_file("nonexistent/repo", "x.gguf", cache_dir=str(seeded_cache))
+
+
+def test_delete_managed_model_file_missing_file_raises(seeded_cache_multiple_gguf: Path):
+    with pytest.raises(NotFoundError):
+        delete_managed_model_file(
+            "mradermacher/TinyStories-656K-GGUF",
+            "does-not-exist.gguf",
+            cache_dir=str(seeded_cache_multiple_gguf),
+        )
+
+
+def test_delete_managed_model_file_missing_cache_dir_raises(tmp_path: Path):
+    missing = tmp_path / "does-not-exist"
+    with pytest.raises(NotFoundError):
+        delete_managed_model_file("any/repo", "x.gguf", cache_dir=str(missing))

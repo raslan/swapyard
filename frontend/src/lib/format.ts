@@ -27,6 +27,24 @@ export function formatEta(remainingBytes: number, bytesPerSec: number): string {
   return `${hours}h ${minutes % 60}m left`;
 }
 
+export function formatRelativeTime(epochSeconds: number): string {
+  const seconds = Date.now() / 1000 - epochSeconds;
+  if (seconds < 3600) return "just now";
+  const hours = Math.floor(seconds / 3600);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
+}
+
+export function formatParamCount(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${Math.round(n / 1_000_000)}M`;
+  return n.toString();
+}
+
 export function formatQuantLabel(filename: string): string {
   const stem = filename.replace(/\.gguf$/, "");
   const lastDot = stem.lastIndexOf(".");

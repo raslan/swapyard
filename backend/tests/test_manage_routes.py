@@ -38,6 +38,38 @@ def test_delete_missing_model_returns_404_shape(client_with_cache):
 
 
 @pytest.fixture
+def client_with_multi_quant_cache(tmp_path, monkeypatch):
+    snapshot_download(
+        repo_id="mradermacher/TinyStories-656K-GGUF",
+        cache_dir=str(tmp_path),
+        allow_patterns=["*.Q2_K.gguf", "*.IQ4_XS.gguf"],
+    )
+    monkeypatch.setattr("app.routes.manage.CACHE_DIR", str(tmp_path))
+    return TestClient(app)
+
+
+def test_delete_model_file_route_removes_only_that_quant(client_with_multi_quant_cache):
+    # Proves the file-scoped route isn't shadowed by the bare /models/{repo_id:path}
+    # route below it - repo_id is a greedy path converter, so registration order matters.
+    resp = client_with_multi_quant_cache.delete(
+        "/api/manage/models/mradermacher/TinyStories-656K-GGUF/files/TinyStories-656K.Q2_K.gguf"
+    )
+    assert resp.status_code == 204
+
+    remaining = client_with_multi_quant_cache.get("/api/manage/models").json()
+    assert len(remaining) == 1
+    assert remaining[0]["gguf_files"] == ["TinyStories-656K.IQ4_XS.gguf"]
+
+
+def test_delete_model_file_route_missing_file_returns_404_shape(client_with_multi_quant_cache):
+    resp = client_with_multi_quant_cache.delete(
+        "/api/manage/models/mradermacher/TinyStories-656K-GGUF/files/does-not-exist.gguf"
+    )
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "not_found"
+
+
+@pytest.fixture
 def client_with_cache_and_config(client_with_cache, tmp_path, monkeypatch):
     config_file = tmp_path / "config.yaml"
     config_file.write_text(

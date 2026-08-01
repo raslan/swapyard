@@ -12,8 +12,6 @@ export function AppShell() {
     <>
       <div className="ambient-bg">
         <div className="ambient-orb" />
-        <div className="ambient-orb" />
-        <div className="ambient-orb" />
       </div>
       <div className="grid-pattern" />
       <div className="noise-overlay" />

@@ -45,7 +45,7 @@ describe("ManagePage", () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("model")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /delete/i }));
 
     const dialog = await screen.findByRole("alertdialog");
@@ -79,7 +79,7 @@ describe("ManagePage", () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("model")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /delete/i }));
 
     const dialog = await screen.findByRole("alertdialog");
@@ -111,7 +111,7 @@ describe("ManagePage", () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("model")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /delete/i }));
 
     const dialog = await screen.findByRole("alertdialog");
@@ -168,7 +168,7 @@ describe("ManagePage", () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("model")).toBeInTheDocument());
     expect(screen.getByText("Q4_K_M")).toBeInTheDocument();
     expect(screen.getByText("Q8_0")).toBeInTheDocument();
   });
@@ -291,7 +291,7 @@ describe("ManagePage", () => {
     });
 
     await waitFor(() => expect(listModelsSpy).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.getByText("org/model")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("model")).toBeInTheDocument());
     // The completed row leaves the DOM via a motion.js exit animation (AnimatePresence),
     // not immediately when React drops it from the list - the node lingers (opacity: 0,
     // still text-queryable) until that transition finishes. By this point it's usually

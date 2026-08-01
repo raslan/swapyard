@@ -1,6 +1,5 @@
-import { Plus, Trash2, X, Zap } from "lucide-react";
+import { Clock, Trash2, X, Zap } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -15,144 +14,43 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { createConfigEntry } from "@/lib/api";
-import { formatEta, formatQuantLabel, formatSize, formatSpeed } from "@/lib/format";
+import { CreateConfigEntryDialog } from "@/components/CreateConfigEntryDialog";
+import { CountIcon, SizeIcon, Stat } from "@/components/SpecStat";
+import { formatEta, formatSize, formatSpeed, formatQuantLabel, formatRelativeTime } from "@/lib/format";
 import type { DownloadState } from "@/types/download";
 import type { ManagedModel } from "@/types/model";
 
 export function ManageRow({
   model,
   onDelete,
+  onDeleteFile,
 }: {
   model: ManagedModel;
   onDelete: (removeConfigEntries: boolean) => void;
+  onDeleteFile: (filename: string) => void;
 }) {
   const [removeConfigEntries, setRemoveConfigEntries] = useState(false);
+  const [pendingDeleteFile, setPendingDeleteFile] = useState<string | null>(null);
   const hasConfigEntries = model.configEntries.length > 0;
-
-  const [createOpen, setCreateOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [modelId, setModelId] = useState(() => model.repoId.split("/").pop() ?? model.repoId);
-  const [selectedFile, setSelectedFile] = useState(model.ggufFiles[0] ?? "");
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  const handleCreateOpenChange = (open: boolean) => {
-    setCreateOpen(open);
-    if (open) {
-      setModelId(model.repoId.split("/").pop() ?? model.repoId);
-      setSelectedFile(model.ggufFiles[0] ?? "");
-      setCreateError(null);
-    }
-  };
-
-  const handleCreate = async () => {
-    setCreateError(null);
-    setCreating(true);
-    try {
-      const result = await createConfigEntry(model.repoId, selectedFile, modelId);
-      if (result.status === "ok") toast.success("Config entry created and verified healthy.");
-      else if (result.status === "unverified")
-        toast.warning(
-          "Config entry created — couldn't verify (no reachable llama-swap URL configured).",
-        );
-      else
-        toast.error(
-          `Config entry created but apply failed: ${result.logs ?? "llama-swap did not become healthy in time"}`,
-        );
-      setCreateOpen(false);
-    } catch (e) {
-      setCreateError(e instanceof Error ? e.message : "Failed to create config entry.");
-    } finally {
-      setCreating(false);
-    }
-  };
+  // Per-quant delete only makes sense when there's more than one quant - with a
+  // single file, the whole-repo Delete button above already does the same thing.
+  const canDeletePerFile = model.ggufFiles.length > 1;
+  const slashIndex = model.repoId.indexOf("/");
+  const author = slashIndex === -1 ? null : model.repoId.slice(0, slashIndex);
+  const name = slashIndex === -1 ? model.repoId : model.repoId.slice(slashIndex + 1);
 
   return (
-    <div className="manage-row p-5">
-      <div className="flex items-center justify-between">
+    <div className="manage-row p-4 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-mono text-text-primary truncate">{model.repoId}</p>
-          <p className="text-xs text-text-muted font-mono">
-            {formatSize(model.sizeOnDisk)} · {model.nbFiles} files
+          <p className="text-[15px] font-display font-semibold text-text-primary truncate" title={model.repoId}>
+            {name}
           </p>
+          {author && <p className="text-xs text-text-muted font-mono mt-0.5 truncate">{author}</p>}
         </div>
-        <div className="flex items-center gap-1">
-          {!hasConfigEntries && (
-            <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Plus className="w-4 h-4" />
-                  Create config entry
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create config entry</DialogTitle>
-                  <DialogDescription>
-                    Adds a minimal entry to config.yaml for{" "}
-                    <span className="font-mono">{model.repoId}</span>, relying on llama-swap's{" "}
-                    <span className="font-mono">--fit</span> for sizing.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor={`model-id-${model.repoId}`} className="text-sm font-medium">
-                      Model ID
-                    </label>
-                    <Input
-                      id={`model-id-${model.repoId}`}
-                      value={modelId}
-                      onChange={(e) => setModelId(e.target.value)}
-                    />
-                  </div>
-                  {model.ggufFiles.length > 1 && (
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium">GGUF file</label>
-                      <Select value={selectedFile} onValueChange={setSelectedFile}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {model.ggufFiles.map((file) => (
-                            <SelectItem key={file} value={file}>
-                              {formatQuantLabel(file)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  {createError && <p className="text-sm text-danger">{createError}</p>}
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={handleCreate}
-                    disabled={creating || !modelId.trim() || !selectedFile}
-                  >
-                    Create
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+        <div className="flex items-center gap-1 shrink-0">
+          {!hasConfigEntries && <CreateConfigEntryDialog model={model} />}
           <AlertDialog onOpenChange={(open) => !open && setRemoveConfigEntries(false)}>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="sm" className="text-danger">
@@ -201,15 +99,57 @@ export function ManageRow({
           </AlertDialog>
         </div>
       </div>
-      {model.ggufFiles.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {model.ggufFiles.map((file) => (
-            <span key={file} className="badge badge-quant">
-              {formatQuantLabel(file)}
-            </span>
-          ))}
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-5 rounded bg-black/40 border border-surface/40 pr-3 py-1.5">
+          <Stat label="Size" value={formatSize(model.sizeOnDisk)} icon={SizeIcon} />
+          <Stat label="Files" value={String(model.nbFiles)} icon={CountIcon} />
+          <Stat label="Updated" value={formatRelativeTime(model.lastModified)} icon={Clock} />
         </div>
-      )}
+        {model.ggufFiles.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 justify-end">
+            {model.ggufFiles.map((file) => (
+              <span key={file} className="badge badge-quant gap-1">
+                {formatQuantLabel(file)}
+                {canDeletePerFile && (
+                  <button
+                    type="button"
+                    aria-label={`Delete ${file}`}
+                    className="hover:text-danger"
+                    onClick={() => setPendingDeleteFile(file)}
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <AlertDialog open={pendingDeleteFile !== null} onOpenChange={(open) => !open && setPendingDeleteFile(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this quant?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes <span className="font-mono">{pendingDeleteFile}</span> from disk.
+              The model's other downloaded quants are left untouched.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingDeleteFile) onDeleteFile(pendingDeleteFile);
+                setPendingDeleteFile(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -240,7 +180,7 @@ export function ActiveDownloadRow({
       <Progress value={pct} />
       <div className="flex items-center justify-between mt-2 text-xs font-mono text-text-muted">
         {download.isXet ? (
-          <span className="flex items-center gap-1.5 text-cyan">
+          <span className="flex items-center gap-1.5 text-info">
             <Zap className="w-3 h-3" />
             Fast transfer via Xet — progress updates in a few big steps, not smoothly
           </span>
