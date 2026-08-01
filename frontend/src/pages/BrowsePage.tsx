@@ -6,7 +6,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { DiscoverTabs } from "@/components/DiscoverTabs";
 import { ModelCard } from "@/components/ModelCard";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDiscoverSections } from "@/hooks/useDiscoverSections";
 import { useModelSearch } from "@/hooks/useModelSearch";
 import { MODEL_SORT_OPTIONS, sortModels, type ModelSortKey } from "@/lib/modelSort";
@@ -32,10 +38,10 @@ export function BrowsePage() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-10 pt-10 pb-2">
-        <h1 className="font-display text-3xl font-bold tracking-tight mb-1.5">
-          Browse Models
-        </h1>
-        <p className="text-sm text-text-secondary">Search Hugging Face for GGUF models ready to download.</p>
+        <h1 className="font-display text-3xl font-bold tracking-tight mb-1.5">Browse Models</h1>
+        <p className="text-sm text-text-secondary">
+          Search Hugging Face for GGUF models ready to download.
+        </p>
       </div>
 
       <div className="px-10 pb-7 flex items-center gap-3">
@@ -49,7 +55,7 @@ export function BrowsePage() {
           />
         </div>
         <Select value={sort} onValueChange={(v) => setSort(v as ModelSortKey)}>
-          <SelectTrigger className="w-44 gap-2 border-surface/40">
+          <SelectTrigger className="w-48 gap-2 border-surface/40">
             <ArrowUpDown className="w-3.5 h-3.5 text-text-muted" />
             <SelectValue />
           </SelectTrigger>
@@ -121,7 +127,9 @@ function DiscoverView({
     return (
       <div className="flex flex-col items-center gap-3 py-24 text-center">
         <WifiOff className="w-8 h-8 text-text-muted" />
-        <p className="text-sm text-text-secondary">Could not reach Hugging Face. Please try again later.</p>
+        <p className="text-sm text-text-secondary">
+          Could not reach Hugging Face. Please try again later.
+        </p>
       </div>
     );
   }
@@ -156,7 +164,9 @@ function SearchResults({
     return (
       <div className="flex flex-col items-center gap-3 py-24 text-center">
         <WifiOff className="w-8 h-8 text-text-muted" />
-        <p className="text-sm text-text-secondary">Could not reach Hugging Face. Please try again later.</p>
+        <p className="text-sm text-text-secondary">
+          Could not reach Hugging Face. Please try again later.
+        </p>
       </div>
     );
   }
