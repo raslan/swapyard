@@ -30,6 +30,8 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: "# Hello world",
       files: [{ name: "model.Q4.gguf", size: 1000, category: "gguf", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     // BrowseDetailPage always calls useDownloads() (regardless of active tab), which
     // fires a real listActiveDownloads() fetch on mount, and useManagedModels() fires a real
@@ -38,7 +40,7 @@ describe("BrowseDetailPage", () => {
     // that fail the run even though both assertions pass.
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const { container } = renderAt("/browse/org/model");
@@ -61,10 +63,12 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: '<div align="center">\n\n**Bold in a div**\n\n</div>',
       files: [{ name: "model.Q4.gguf", size: 1000, category: "gguf", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const { container } = renderAt("/browse/org/model");
@@ -95,10 +99,12 @@ describe("BrowseDetailPage", () => {
       readme:
         '<script>alert(1)</script>\n\n<img src="x" onerror="alert(1)" alt="pwned">\n\n<a href="javascript:alert(1)">click me</a>',
       files: [{ name: "model.Q4.gguf", size: 1000, category: "gguf", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const { container } = renderAt("/browse/org/model");
@@ -119,10 +125,12 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: "[a link](https://example.com)",
       files: [{ name: "model.Q4.gguf", size: 1000, category: "gguf", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const { container } = renderAt("/browse/org/model");
@@ -145,9 +153,11 @@ describe("BrowseDetailPage", () => {
         { name: "model.Q4.gguf", size: 1000, category: "gguf", isXet: false },
         { name: "model.Q8.gguf", size: 2000, category: "gguf", isXet: false },
       ],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([
       {
@@ -176,10 +186,12 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: "readme",
       files: [{ name: "model.Q4.gguf", size: 1000, category: "gguf", isXet: true }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     renderAt("/browse/org/model?tab=files");
@@ -195,10 +207,12 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: "readme",
       files: [{ name: "model.Q4.gguf", size: 1000, category: "gguf", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
     const startSpy = vi.spyOn(api, "startDownload").mockResolvedValue({ id: "d1" });
     vi.spyOn(api, "subscribeToDownload").mockReturnValue(() => {});
@@ -221,10 +235,12 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: "# Hello world",
       files: [{ name: "model.Q4.gguf", size: 1000, category: "gguf", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     const user = userEvent.setup();
@@ -244,10 +260,12 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: "readme",
       files: [{ name: "model-Q4_K_M.gguf", size: 1000, category: "gguf", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: { kind: "gpus", gpus: [{ name: null, vramGb: 12 }, { name: null, vramGb: 12 }], systemRamGb: null } });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: { kind: "gpus", gpus: [{ name: null, vramGb: 12 }, { name: null, vramGb: 12 }], systemRamGb: null }, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([
       {
         quant: "model-Q4_K_M.gguf",
@@ -270,10 +288,12 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: "readme",
       files: [{ name: "model-Q4_K_M.gguf", size: 1000, category: "gguf", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: { kind: "unified", gpus: [], systemRamGb: 16 } });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: { kind: "unified", gpus: [], systemRamGb: 16 }, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([
       {
         quant: "model-Q4_K_M.gguf",
@@ -296,10 +316,12 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: "readme",
       files: [{ name: "model-Q4_K_M.gguf", size: 1000, category: "gguf", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([
       {
         quant: "model-Q4_K_M.gguf",
@@ -322,10 +344,12 @@ describe("BrowseDetailPage", () => {
       likes: 0,
       readme: "readme",
       files: [{ name: "mmproj-model-f16.gguf", size: 1000, category: "mmproj", isXet: false }],
+      contextLength: null,
+      recommendedSamplerParams: null,
     });
     vi.spyOn(api, "listActiveDownloads").mockResolvedValue([]);
     vi.spyOn(api, "listManagedModels").mockResolvedValue([]);
-    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null });
+    vi.spyOn(api, "getSettings").mockResolvedValue({ hardware: null, llamaSwapUrl: null, onboarded: true });
     vi.spyOn(api, "getVramEstimate").mockResolvedValue([]);
 
     renderAt("/browse/org/model?tab=files");

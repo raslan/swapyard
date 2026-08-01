@@ -142,7 +142,7 @@ export function BrowseDetailPage() {
 
       <div className="flex-1 overflow-y-auto px-10 py-6">
         {tab === "overview" && (
-          <div className="max-w-3xl">
+          <div className="max-w-5xl">
             <ReadmeFrame markdown={detail.readme} />
           </div>
         )}
@@ -156,7 +156,7 @@ export function BrowseDetailPage() {
             )}
             {estimate.length > 0 && settings.hardware == null && (
               <p className="text-xs text-text-muted">
-                <Link to="/settings" className="text-cyan hover:underline">
+                <Link to="/settings" className="text-brand underline underline-offset-2 hover:text-brand/80">
                   Set your VRAM in Settings
                 </Link>{" "}
                 to see fit recommendations.

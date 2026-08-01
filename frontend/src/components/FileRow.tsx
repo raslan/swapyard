@@ -39,7 +39,7 @@ export function FileRow({
             {formatSize(file.size)} · {file.category.toUpperCase()}
             {file.isXet && (
               <span
-                className="inline-flex items-center gap-0.5 text-cyan"
+                className="inline-flex items-center gap-0.5 text-info"
                 title="Downloads fast via HF's Xet backend, but reports progress in only a couple of jumps rather than smoothly"
               >
                 <Zap className="w-3 h-3" />
@@ -52,7 +52,7 @@ export function FileRow({
       <div className="flex items-center gap-3 shrink-0">
         {recommended && (
           <span
-            className="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-cyan bg-cyan/10 border border-cyan/30 rounded-full px-3 py-1.5"
+            className="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-brand bg-brand/10 border border-brand/20 rounded-full px-3 py-1.5"
             title="The largest quant that fits your configured VRAM budget"
           >
             <Sparkles className="w-3.5 h-3.5" />

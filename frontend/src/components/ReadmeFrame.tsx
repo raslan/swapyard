@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { renderReadmeHtml } from "@/lib/readme";
 
@@ -13,11 +13,14 @@ const SANDBOX = "allow-same-origin allow-popups";
 export function ReadmeFrame({ markdown }: { markdown: string }) {
   const html = renderReadmeHtml(markdown);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const observerRef = useRef<ResizeObserver | null>(null);
   const [height, setHeight] = useState(0);
   // The iframe stays 0-height (and so looks like an empty page, not "loading") until
   // its own onLoad fires - a separate delay from the README data having already
   // arrived, since the browser still has to parse/lay out the injected HTML.
   const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => () => observerRef.current?.disconnect(), []);
 
   return (
     <>
@@ -32,12 +35,24 @@ export function ReadmeFrame({ markdown }: { markdown: string }) {
         srcDoc={html}
         sandbox={SANDBOX}
         title="README"
+        scrolling="no"
         className="w-full border-0"
         style={{ height: loaded ? height : 0 }}
         onLoad={() => {
           const doc = iframeRef.current?.contentDocument;
-          if (doc) setHeight(doc.documentElement.scrollHeight);
           setLoaded(true);
+          observerRef.current?.disconnect();
+          if (!doc?.body) return;
+
+          // A single scrollHeight read here fires before images/webfonts finish laying
+          // out, undershooting the real height - the leftover content then scrolls
+          // inside the iframe itself instead of the outer page. A ResizeObserver keeps
+          // the height in sync as the document's layout settles.
+          const observer = new ResizeObserver(() => {
+            if (doc.documentElement) setHeight(doc.documentElement.scrollHeight);
+          });
+          observer.observe(doc.body);
+          observerRef.current = observer;
         }}
       />
     </>
