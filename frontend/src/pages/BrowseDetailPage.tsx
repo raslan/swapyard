@@ -67,16 +67,19 @@ export function BrowseDetailPage() {
 
   // Fit is computed client-side against the settings budget (rather than
   // server-side) so changing the budget never needs a re-fetch. Weight size
-  // only - a flat 15% cushion accounts for context/runtime overhead without
+  // only - a flat 25% cushion accounts for context/runtime overhead without
   // trying to model it precisely (see HISTORY.md). Every quant that fits is
   // badged; the largest of those is additionally marked "Recommended".
-  const FIT_CUSHION = 1.15;
+  const FIT_CUSHION = 1.25;
   const budgetBytes = totalVramBytes(settings.hardware);
   const fittingQuants = budgetBytes != null ? estimate.filter((g) => g.weightBytes * FIT_CUSHION <= budgetBytes) : [];
   const recommendedQuant = fittingQuants.sort((a, b) => b.weightBytes - a.weightBytes)[0];
 
   const groupedNames = new Set(estimate.flatMap((g) => g.files));
-  const ungroupedFiles = detail?.files.filter((f) => !groupedNames.has(f.name)) ?? [];
+  const ungroupedFiles = (detail?.files.filter((f) => !groupedNames.has(f.name)) ?? [])
+    .slice()
+    .sort((a, b) => a.size - b.size);
+  const sortedEstimate = estimate.slice().sort((a, b) => a.weightBytes - b.weightBytes);
 
   const backButton = (
     <Button
@@ -162,28 +165,44 @@ export function BrowseDetailPage() {
                 to see fit recommendations.
               </p>
             )}
-            {estimate.map((group) => (
-              <QuantGroup
-                key={group.quant}
-                files={group.files
-                  .map((name) => detail.files.find((f) => f.name === name))
-                  .filter((f): f is ModelFile => f !== undefined)}
-                fits={fittingQuants.some((g) => g.quant === group.quant)}
-                recommended={recommendedQuant?.quant === group.quant}
-                fileStatus={fileStatus}
-                onDownload={handleDownload}
-              />
-            ))}
-            <div className="space-y-2">
-              {ungroupedFiles.map((file) => (
-                <FileRow
-                  key={file.name}
-                  file={file}
-                  status={fileStatus(file)}
-                  onDownload={() => handleDownload(file)}
-                />
-              ))}
-            </div>
+            {sortedEstimate.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-text-muted">
+                  Quantizations
+                </h3>
+                <div className="space-y-4">
+                  {sortedEstimate.map((group) => (
+                    <QuantGroup
+                      key={group.quant}
+                      files={group.files
+                        .map((name) => detail.files.find((f) => f.name === name))
+                        .filter((f): f is ModelFile => f !== undefined)}
+                      fits={fittingQuants.some((g) => g.quant === group.quant)}
+                      recommended={recommendedQuant?.quant === group.quant}
+                      fileStatus={fileStatus}
+                      onDownload={handleDownload}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {ungroupedFiles.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-text-muted">
+                  Other files
+                </h3>
+                <div className="space-y-2">
+                  {ungroupedFiles.map((file) => (
+                    <FileRow
+                      key={file.name}
+                      file={file}
+                      status={fileStatus(file)}
+                      onDownload={() => handleDownload(file)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

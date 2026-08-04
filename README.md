@@ -82,12 +82,17 @@ services:
       - ./data:/app/data
 ```
 
-`config.yaml` and `data/` must exist before first run:
+`config.yaml` must exist before first run — it's mounted as a single file,
+and Docker creates a **directory** at that path instead if nothing's there
+yet, breaking the mount:
 
 ```bash
 touch config.yaml
-mkdir -p data
 ```
+
+The HF cache dir and `data/` don't need this — Docker auto-creates missing
+directory mounts, and both get populated on their own (`data/` on first
+write, the cache dir on first download).
 
 The HF cache path and `config.yaml` path here must be the **exact same
 directories/files** your separately-run `llama-swap` uses — not copies, not
@@ -95,6 +100,44 @@ similar-looking paths. Swapyard writes config changes and expects `-hf`
 downloads to already be visible to `llama-server` processes `llama-swap`
 spawns; point both at the identical host paths `llama-swap` itself mounts,
 or config edits won't reach it and downloaded models will re-download.
+
+**Worked example.** Say your existing `llama-swap` service looks like this:
+
+```yaml
+services:
+  llama-swap:
+    image: ghcr.io/mostlygeek/llama-swap:cuda
+    environment:
+      - HF_HOME=/models/.hf-cache
+    volumes:
+      - /srv/models:/models
+      - /srv/llama-swap/config.yaml:/app/config.yaml
+```
+
+Two things to resolve before writing Swapyard's mounts:
+
+1. **The cache path isn't `/srv/models` itself.** `HF_HOME=/models/.hf-cache`
+   means the actual cache root, from the host's point of view, is
+   `/srv/models/.hf-cache` — and Swapyard's mount target is specifically the
+   `hub` subfolder inside it, `/srv/models/.hf-cache/hub`. If `HF_HOME` were
+   unset, the default is `<mounted dir>/.cache/huggingface`, so watch for that
+   variant too.
+2. **Reuse the same host `config.yaml`**, not a copy: `/srv/llama-swap/config.yaml`.
+
+Swapyard's volumes then become:
+
+```yaml
+    volumes:
+      - /srv/models/.hf-cache/hub:/home/app/.cache/huggingface/hub
+      - /srv/llama-swap/config.yaml:/app/llama-swap-config.yaml
+      - ./data:/app/data
+```
+
+If you're not sure your `HF_HOME` maps out this way, `ls` the host path you're
+about to mount and confirm it actually contains `models--org--name`-style
+folders before starting Swapyard — mounting the wrong subfolder silently
+looks fine on boot and only breaks the first time you hit a repo llama-swap
+already downloaded.
 
 ### Full compose (Swapyard + llama-swap)
 
@@ -150,8 +193,8 @@ Notes:
   Swapyard still writes and validates `config.yaml`, it just can't confirm
   the new config actually came up healthy in `llama-swap`.
 
-`config.yaml` and `data/` must exist before first run (`touch config.yaml`,
-`mkdir -p data`), same as the minimal setup.
+`config.yaml` must exist before first run (`touch config.yaml`), same as the
+minimal setup — everything else in the volumes is fine unmounted.
 
 ### Environment variables
 
