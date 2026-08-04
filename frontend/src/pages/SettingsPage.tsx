@@ -124,7 +124,7 @@ function SettingsForm({
   };
 
   return (
-    <div className="p-10 max-w-4xl">
+    <div className="flex-1 overflow-y-auto p-10 max-w-4xl">
       <div className="flex items-center gap-4 mb-1.5">
         <div className="w-12 h-12 rounded-lg bg-dark border border-edge flex items-center justify-center shrink-0">
           <SlidersHorizontal className="w-6 h-6 text-brand" />
