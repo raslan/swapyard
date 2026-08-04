@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/raslan/swapyard/compare/v1.2.0...v1.2.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* adjust dockerfile tmp mounting ([b662f08](https://github.com/raslan/swapyard/commit/b662f0896a5f4d09acddfa60136a90a1f4d0ccd7))
+
 ## [1.2.0](https://github.com/raslan/swapyard/compare/v1.1.0...v1.2.0) (2026-08-04)
 
 
