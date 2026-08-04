@@ -2,7 +2,7 @@
 # This image's ENTRYPOINT is already /app/llama-server, so --help goes
 # straight to it - passing the binary path explicitly as an arg instead
 # fails with "invalid argument" (verified via
-# `docker run --rm ghcr.io/ggml-org/llama.cpp:server --help`).
+# `docker run --rm ghcr.io/ggml-org/llama.cpp:server --help`)
 FROM ghcr.io/ggml-org/llama.cpp:server AS flags-extract
 RUN /app/llama-server --help > /tmp/llama-server-help.txt 2>&1 || true
 
