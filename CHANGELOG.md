@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/raslan/swapyard/compare/v1.2.1...v1.2.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* permissions for hf_cache ([083d166](https://github.com/raslan/swapyard/commit/083d166bb24c29a0bc022405beeacb34afd6a752))
+
 ## [1.2.1](https://github.com/raslan/swapyard/compare/v1.2.0...v1.2.1) (2026-08-04)
 
 
