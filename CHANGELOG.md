@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.0](https://github.com/raslan/swapyard/compare/v1.0.0...v1.1.0) (2026-08-04)
+
+
+### Features
+
+* adjust browsepage sort width ([b7e7056](https://github.com/raslan/swapyard/commit/b7e7056e7a3745e5233ba4b50873bd77f4a044d6))
+* adjust model weight cushion for recommendations ([5e522e8](https://github.com/raslan/swapyard/commit/5e522e82c1162c004a6c4d5118b9da8785d7cb50))
+* allow scroll on settings page ([e758332](https://github.com/raslan/swapyard/commit/e7583322fab4edc34ce614ac5670e4ceee4befcd))
+
 ## 1.0.0 (2026-08-01)
 
 
