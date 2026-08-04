@@ -17,10 +17,6 @@ RUN npm run build
 # ---- Stage 2: shipped image ----
 FROM python:3.12-slim
 RUN useradd --uid 1000 --create-home --shell /bin/bash app
-# /tmp (not /app) so this stays writable under an arbitrary --user override too -
-# unlike /app, it's not baked chown'd to uid 1000 at build time, it relies on the
-# base image's default sticky-bit 1777 permissions instead.
-ENV UV_CACHE_DIR=/tmp/.uv-cache
 WORKDIR /app
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -35,6 +31,15 @@ RUN python3 /tmp/parse_llama_server_flags.py < /tmp/llama-server-help.txt > /app
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 RUN mkdir -p /home/app/.cache/huggingface/hub && chown -R app:app /app /home/app
+# /tmp (not /app) so this stays writable under an arbitrary --user override too -
+# unlike /app, it's not baked chown'd to uid 1000 at build time, it relies on the
+# base image's default sticky-bit 1777 permissions instead. Set only now, after
+# the build-time `uv sync` above - that step runs as root and must NOT write into
+# /tmp itself, or the cache files it creates get baked into the image pre-owned
+# by root, which defeats the whole point (sticky bit lets any uid CREATE new
+# files in /tmp, it doesn't retroactively grant write access to ones that
+# already exist there owned by someone else).
+ENV UV_CACHE_DIR=/tmp/.uv-cache
 USER app
 
 WORKDIR /app/backend
