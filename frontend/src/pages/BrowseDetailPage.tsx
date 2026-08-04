@@ -6,12 +6,22 @@ import { FileRow } from "@/components/FileRow";
 import { QuantGroup } from "@/components/QuantGroup";
 import { ReadmeFrame } from "@/components/ReadmeFrame";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useDownloads } from "@/hooks/useDownloads";
 import { useManagedModels } from "@/hooks/useManagedModels";
 import { useModelDetail } from "@/hooks/useModelDetail";
 import { useSettings } from "@/hooks/useSettings";
 import { useVramEstimate } from "@/hooks/useVramEstimate";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, formatSize } from "@/lib/format";
 import type { ModelFile } from "@/types/model";
 import type { HardwareProfile } from "@/types/settings";
 
@@ -43,10 +53,14 @@ export function BrowseDetailPage() {
   const { settings } = useSettings();
   const navigate = useNavigate();
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [mmprojChoices, setMmprojChoices] = useState<ModelFile[] | null>(null);
+  const [selectedMmproj, setSelectedMmproj] = useState<string | null>(null);
 
-  const downloadedFiles = new Set(
-    managedModels.find((m) => m.repoId === repoId)?.ggufFiles ?? [],
-  );
+  const managedModel = managedModels.find((m) => m.repoId === repoId);
+  const downloadedFiles = new Set([
+    ...(managedModel?.ggufFiles ?? []),
+    ...(managedModel?.mmprojFiles ?? []),
+  ]);
   const downloadingFiles = new Set(
     downloads.filter((d) => d.repoId === repoId && d.status === "downloading").map((d) => d.filename),
   );
@@ -54,14 +68,47 @@ export function BrowseDetailPage() {
   const fileStatus = (file: ModelFile): "none" | "downloading" | "downloaded" =>
     downloadedFiles.has(file.name) ? "downloaded" : downloadingFiles.has(file.name) ? "downloading" : "none";
 
+  const mmprojFiles = detail?.files.filter((f) => f.category === "mmproj") ?? [];
+
+  const startFile = async (file: ModelFile) => {
+    await start(repoId, file.name, file.isXet);
+  };
+
   const handleDownload = async (file: ModelFile) => {
     try {
       setDownloadError(null);
-      await start(repoId, file.name, file.isXet);
+      await startFile(file);
+
+      // Vision models need their mmproj alongside the weights - llama-server's
+      // `-hf` auto-fetches it on load if missing, but that means the model's
+      // first load silently re-triggers a download instead of just mmap'ing
+      // straight to inference. Only one mmproj is ever needed (independent of
+      // which weight quant was picked), so bundle it in here instead.
+      const missingMmproj = mmprojFiles.filter((f) => fileStatus(f) === "none");
+      if (file.category === "gguf" && missingMmproj.length === 1) {
+        await startFile(missingMmproj[0]);
+      } else if (file.category === "gguf" && missingMmproj.length > 1) {
+        setSelectedMmproj(missingMmproj[0].name);
+        setMmprojChoices(missingMmproj);
+        return;
+      }
       navigate("/manage");
     } catch (err) {
       console.error("Failed to start download", err);
       setDownloadError("Failed to start download. Please try again.");
+    }
+  };
+
+  const resolveMmprojChoice = async (fileName: string | null) => {
+    try {
+      const chosen = fileName ? mmprojChoices?.find((f) => f.name === fileName) : undefined;
+      if (chosen) await startFile(chosen);
+      setMmprojChoices(null);
+      navigate("/manage");
+    } catch (err) {
+      console.error("Failed to start download", err);
+      setDownloadError("Failed to start download. Please try again.");
+      setMmprojChoices(null);
     }
   };
 
@@ -206,6 +253,41 @@ export function BrowseDetailPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={mmprojChoices !== null} onOpenChange={(open) => !open && resolveMmprojChoice(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Which mmproj file?</DialogTitle>
+            <DialogDescription>
+              This repo has multiple vision projector files. Only one is needed — pick one to
+              download alongside the weights, or skip.
+            </DialogDescription>
+          </DialogHeader>
+          <RadioGroup value={selectedMmproj ?? undefined} onValueChange={setSelectedMmproj}>
+            {mmprojChoices?.map((f) => (
+              <label
+                key={f.name}
+                htmlFor={`mmproj-${f.name}`}
+                className="flex items-center gap-3 rounded-lg border border-surface/40 bg-abyss p-3 cursor-pointer"
+              >
+                <RadioGroupItem value={f.name} id={`mmproj-${f.name}`} />
+                <div className="min-w-0">
+                  <Label htmlFor={`mmproj-${f.name}`} className="font-mono text-xs truncate block cursor-pointer">
+                    {f.name}
+                  </Label>
+                  <p className="text-xs text-text-muted mt-0.5">{formatSize(f.size)}</p>
+                </div>
+              </label>
+            ))}
+          </RadioGroup>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => resolveMmprojChoice(null)}>
+              Skip
+            </Button>
+            <Button onClick={() => resolveMmprojChoice(selectedMmproj)}>Download</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -16,6 +16,7 @@ describe("useManagedModels", () => {
         nbFiles: 1,
         lastModified: 1,
         ggufFiles: [],
+        mmprojFiles: [],
         configEntries: [],
       },
     ]);
@@ -108,6 +109,7 @@ describe("useManagedModels", () => {
         nbFiles: 1,
         lastModified: 1,
         ggufFiles: [],
+        mmprojFiles: [],
         configEntries: [],
       },
     ];
@@ -118,6 +120,7 @@ describe("useManagedModels", () => {
         nbFiles: 1,
         lastModified: 1,
         ggufFiles: [],
+        mmprojFiles: [],
         configEntries: [],
       },
     ];

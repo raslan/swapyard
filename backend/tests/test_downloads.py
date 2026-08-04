@@ -85,6 +85,18 @@ async def test_cancel_download_marks_cancelled():
         assert state.status == "cancelled"
 
 
+async def test_start_download_reports_friendly_permission_error():
+    def denied(*, repo_id, filename, tqdm_class, **kwargs):
+        raise PermissionError(13, "Permission denied", "/cache/hub/org--model")
+
+    with patch("app.services.downloads.hf_hub_download", side_effect=denied):
+        state = await start_download("org/model", "model.gguf")
+        await state.task
+        assert state.status == "error"
+        assert "/cache/hub/org--model" in state.error
+        assert "writable by the container's user" in state.error
+
+
 def test_cancel_unknown_download_returns_false():
     assert cancel_download("does-not-exist") is False
 

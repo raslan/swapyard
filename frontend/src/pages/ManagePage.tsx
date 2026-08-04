@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { ActiveDownloadRow, ManageRow } from "@/components/ManageRow";
+import { ActiveDownloadRow, FailedDownloadRow, ManageRow } from "@/components/ManageRow";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -18,7 +18,7 @@ import type { DownloadState } from "@/types/download";
 
 export function ManagePage() {
   const { models, sort, setSort, remove, removeFile, refetch } = useManagedModels();
-  const { downloads, cancel } = useDownloads();
+  const { downloads, cancel, dismiss } = useDownloads();
   const navigate = useNavigate();
 
   const prevStatuses = useRef<Map<string, DownloadState["status"]>>(new Map());
@@ -41,7 +41,8 @@ export function ManagePage() {
   }, [downloads, sort, refetch]);
 
   const inProgress = downloads.filter((d) => d.status === "downloading");
-  const isEmpty = models.length === 0 && inProgress.length === 0;
+  const failed = downloads.filter((d) => d.status === "error");
+  const isEmpty = models.length === 0 && inProgress.length === 0 && failed.length === 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -94,6 +95,17 @@ export function ManagePage() {
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               >
                 <ActiveDownloadRow download={d} onCancel={() => cancel(d.id)} />
+              </motion.div>
+            ))}
+            {failed.map((d) => (
+              <motion.div
+                key={d.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <FailedDownloadRow download={d} onDismiss={() => dismiss(d.id)} />
               </motion.div>
             ))}
             {models.map((m) => (

@@ -13,25 +13,34 @@ class ManagedModel:
     nb_files: int
     last_modified: float
     gguf_files: list[str]
+    mmproj_files: list[str]
 
 
-def _gguf_files(repo) -> list[str]:  # noqa: ANN001 - CachedRepoInfo has no public type alias
-    """Union+dedupe .gguf filenames across all revisions of a cached repo, sorted.
-
-    Excludes mmproj files (same "mmproj" in lower() substring check
-    services/browse.py's _categorize_file uses) - llama-server's `-hf` already
-    auto-downloads/attaches a repo's mmproj file on its own (confirmed against
-    real `llama-server --help` text: "mmproj is also downloaded automatically
-    if available"), so it's never something a config entry's -hf value should
-    point at directly, and listing it as a pickable "which file" option in the
-    create-entry UI is just confusing noise."""
-    names = {
+def _cached_gguf_files(repo) -> set[str]:  # noqa: ANN001 - CachedRepoInfo has no public type alias
+    return {
         file.file_name
         for revision in repo.revisions
         for file in revision.files
-        if file.file_name.endswith(".gguf") and "mmproj" not in file.file_name.lower()
+        if file.file_name.endswith(".gguf")
     }
-    return sorted(names)
+
+
+def _gguf_files(names: set[str]) -> list[str]:
+    """Dedupe, sorted, non-mmproj .gguf filenames (same "mmproj" in lower() substring
+    check services/browse.py's _categorize_file uses) - llama-server's `-hf` already
+    auto-downloads/attaches a repo's mmproj file on its own (confirmed against real
+    `llama-server --help` text: "mmproj is also downloaded automatically if available"),
+    so it's never something a config entry's -hf value should point at directly, and
+    listing it as a pickable "which file" option in the create-entry UI is just
+    confusing noise."""
+    return sorted(n for n in names if "mmproj" not in n.lower())
+
+
+def _mmproj_files(names: set[str]) -> list[str]:
+    """Dedupe, sorted mmproj filenames - tracked separately from gguf_files above so
+    the frontend can tell an already-downloaded mmproj apart from one still worth
+    offering, without it polluting the config-entry file picker."""
+    return sorted(n for n in names if "mmproj" in n.lower())
 
 
 def list_managed_models(sort: str = "size", cache_dir: str | None = None) -> list[ManagedModel]:
@@ -39,17 +48,21 @@ def list_managed_models(sort: str = "size", cache_dir: str | None = None) -> lis
         cache_info = scan_cache_dir(cache_dir=cache_dir)
     except CacheNotFound:
         return []
-    models = [
-        ManagedModel(
-            repo_id=repo.repo_id,
-            size_on_disk=repo.size_on_disk,
-            nb_files=repo.nb_files,
-            last_modified=repo.last_modified,
-            gguf_files=_gguf_files(repo),
+    models = []
+    for repo in cache_info.repos:
+        if repo.repo_type != "model":
+            continue
+        names = _cached_gguf_files(repo)
+        models.append(
+            ManagedModel(
+                repo_id=repo.repo_id,
+                size_on_disk=repo.size_on_disk,
+                nb_files=repo.nb_files,
+                last_modified=repo.last_modified,
+                gguf_files=_gguf_files(names),
+                mmproj_files=_mmproj_files(names),
+            )
         )
-        for repo in cache_info.repos
-        if repo.repo_type == "model"
-    ]
     if sort == "name":
         models.sort(key=lambda m: m.repo_id.lower())
     else:

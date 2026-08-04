@@ -33,6 +33,7 @@ const baseModel: ManagedModel = {
   nbFiles: 1,
   lastModified: 0,
   ggufFiles: ["org-model.Q4_K_M.gguf"],
+  mmprojFiles: [],
   configEntries: [],
 };
 

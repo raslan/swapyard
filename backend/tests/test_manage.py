@@ -6,7 +6,9 @@ from huggingface_hub import snapshot_download
 
 from app.errors import NotFoundError
 from app.services.manage import (
+    _cached_gguf_files,
     _gguf_files,
+    _mmproj_files,
     delete_managed_model,
     delete_managed_model_file,
     list_managed_models,
@@ -79,7 +81,7 @@ def test_list_managed_models_multiple_gguf_files_union_and_sorted(
     ]
 
 
-def test_gguf_files_excludes_mmproj():
+def test_gguf_files_excludes_mmproj_and_mmproj_files_only_mmproj():
     repo = SimpleNamespace(
         revisions=[
             SimpleNamespace(
@@ -90,7 +92,9 @@ def test_gguf_files_excludes_mmproj():
             )
         ]
     )
-    assert _gguf_files(repo) == ["qwen3.5-0.8b-Q4_K_M.gguf"]
+    names = _cached_gguf_files(repo)
+    assert _gguf_files(names) == ["qwen3.5-0.8b-Q4_K_M.gguf"]
+    assert _mmproj_files(names) == ["mmproj-qwen3.5-0.8b-f16.gguf"]
 
 
 @pytest.fixture

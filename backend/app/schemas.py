@@ -20,6 +20,7 @@ class ManagedModelResponse(BaseModel):
     nb_files: int
     last_modified: float
     gguf_files: list[str]
+    mmproj_files: list[str] = []
     config_entries: list[str] = []
 
 

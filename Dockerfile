@@ -17,7 +17,10 @@ RUN npm run build
 # ---- Stage 2: shipped image ----
 FROM python:3.12-slim
 RUN useradd --uid 1000 --create-home --shell /bin/bash app
-ENV UV_CACHE_DIR=/app/.uv-cache
+# /tmp (not /app) so this stays writable under an arbitrary --user override too -
+# unlike /app, it's not baked chown'd to uid 1000 at build time, it relies on the
+# base image's default sticky-bit 1777 permissions instead.
+ENV UV_CACHE_DIR=/tmp/.uv-cache
 WORKDIR /app
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/

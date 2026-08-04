@@ -62,5 +62,9 @@ export function useDownloads() {
     await apiCancelDownload(id);
   }, []);
 
-  return { downloads, start, cancel };
+  const dismiss = useCallback((id: string) => {
+    setDownloads((prev) => prev.filter((d) => d.id !== id));
+  }, []);
+
+  return { downloads, start, cancel, dismiss };
 }

@@ -59,6 +59,12 @@ async def start_download(repo_id: str, filename: str, is_xet: bool = False) -> D
         except asyncio.CancelledError:
             state.status = "cancelled"
             raise
+        except PermissionError as exc:
+            state.status = "error"
+            state.error = (
+                f"Permission denied writing to the Hugging Face cache ({exc.filename}). "
+                "Check that the mounted cache directory is writable by the container's user."
+            )
         except Exception as exc:
             state.status = "error"
             state.error = str(exc)
