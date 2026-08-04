@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/raslan/swapyard/compare/v1.2.2...v1.3.0) (2026-08-04)
+
+
+### Features
+
+* add linking to the other page on the model itself ([d6e02c1](https://github.com/raslan/swapyard/commit/d6e02c1e17dcb25206190b0dd05a7f2d60107b3b))
+
 ## [1.2.2](https://github.com/raslan/swapyard/compare/v1.2.1...v1.2.2) (2026-08-04)
 
 
