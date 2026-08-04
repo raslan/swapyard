@@ -14,8 +14,11 @@ export function useDownloads() {
 
   const upsert = useCallback((state: DownloadState) => {
     setDownloads((prev) => {
-      const others = prev.filter((d) => d.id !== state.id);
-      return [state, ...others];
+      const index = prev.findIndex((d) => d.id === state.id);
+      if (index === -1) return [state, ...prev];
+      const next = [...prev];
+      next[index] = state;
+      return next;
     });
   }, []);
 

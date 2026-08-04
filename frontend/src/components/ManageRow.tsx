@@ -1,5 +1,6 @@
-import { AlertCircle, Clock, Trash2, X, Zap } from "lucide-react";
+import { AlertCircle, Clock, ExternalLink, Trash2, X, Zap } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import {
   AlertDialog,
@@ -50,6 +51,12 @@ export function ManageRow({
           {author && <p className="text-xs text-text-muted font-mono mt-0.5 truncate">{author}</p>}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to={`/browse/${model.repoId}`}>
+              <ExternalLink className="w-4 h-4" />
+              View
+            </Link>
+          </Button>
           {!hasConfigEntries && <CreateConfigEntryDialog model={model} />}
           <AlertDialog onOpenChange={(open) => !open && setRemoveConfigEntries(false)}>
             <AlertDialogTrigger asChild>
