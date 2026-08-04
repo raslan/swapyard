@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/raslan/swapyard/compare/v1.1.0...v1.2.0) (2026-08-04)
+
+
+### Features
+
+* add new mmproj handler ([4bbe391](https://github.com/raslan/swapyard/commit/4bbe3917058776cb1d18590dc0613a9f1b90f458))
+
 ## [1.1.0](https://github.com/raslan/swapyard/compare/v1.0.0...v1.1.0) (2026-08-04)
 
 
