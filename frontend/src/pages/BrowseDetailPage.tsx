@@ -1,6 +1,6 @@
 import { AlertCircle, ArrowLeft, FileText, List, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { FileRow } from "@/components/FileRow";
 import { QuantGroup } from "@/components/QuantGroup";
@@ -52,6 +52,7 @@ export function BrowseDetailPage() {
   const { estimate } = useVramEstimate(repoId);
   const { settings } = useSettings();
   const navigate = useNavigate();
+  const location = useLocation();
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [mmprojChoices, setMmprojChoices] = useState<ModelFile[] | null>(null);
   const [selectedMmproj, setSelectedMmproj] = useState<string | null>(null);
@@ -92,7 +93,7 @@ export function BrowseDetailPage() {
         setMmprojChoices(missingMmproj);
         return;
       }
-      navigate("/manage");
+      navigate("/manage", { state: { fromRepoId: repoId } });
     } catch (err) {
       console.error("Failed to start download", err);
       setDownloadError("Failed to start download. Please try again.");
@@ -104,7 +105,7 @@ export function BrowseDetailPage() {
       const chosen = fileName ? mmprojChoices?.find((f) => f.name === fileName) : undefined;
       if (chosen) await startFile(chosen);
       setMmprojChoices(null);
-      navigate("/manage");
+      navigate("/manage", { state: { fromRepoId: repoId } });
     } catch (err) {
       console.error("Failed to start download", err);
       setDownloadError("Failed to start download. Please try again.");
@@ -128,12 +129,21 @@ export function BrowseDetailPage() {
     .sort((a, b) => a.size - b.size);
   const sortedEstimate = estimate.slice().sort((a, b) => a.weightBytes - b.weightBytes);
 
+  // Prefer real back-navigation so the previous /browse entry's search query and
+  // scroll position come back intact. location.key === "default" means this page
+  // was loaded directly (no prior entry to go back to, e.g. a shared link) - only
+  // then fall back to a fixed destination.
+  const goBack = () => {
+    if (location.key === "default") navigate("/browse");
+    else navigate(-1);
+  };
+
   const backButton = (
     <Button
       variant="ghost"
       size="sm"
       className="-ml-2 gap-2 text-text-muted hover:text-text-primary"
-      onClick={() => navigate("/browse")}
+      onClick={goBack}
     >
       <ArrowLeft className="w-4 h-4" />
       Back to Browse

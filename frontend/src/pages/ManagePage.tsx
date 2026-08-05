@@ -1,7 +1,7 @@
-import { ArrowRight, ArrowUpDown, HardDrive } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpDown, HardDrive } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { ActiveDownloadRow, FailedDownloadRow, ManageRow } from "@/components/ManageRow";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,11 @@ export function ManagePage() {
   const { models, sort, setSort, remove, removeFile, refetch } = useManagedModels();
   const { downloads, cancel, dismiss } = useDownloads();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Only set when we landed here via a download start (BrowseDetailPage passes
+  // it through navigate state) - Manage is also a plain sidebar destination, so
+  // a "Back" affordance would be wrong to show unconditionally.
+  const fromRepoId = (location.state as { fromRepoId?: string } | null)?.fromRepoId;
 
   const prevStatuses = useRef<Map<string, DownloadState["status"]>>(new Map());
 
@@ -48,6 +53,17 @@ export function ManagePage() {
     <div className="flex flex-col h-full">
       <div className="px-10 pt-10 pb-4 flex items-center justify-between">
         <div>
+          {fromRepoId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-2 mb-1 gap-2 text-text-muted hover:text-text-primary"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to {fromRepoId}
+            </Button>
+          )}
           <h1 className="font-display text-3xl font-bold tracking-tight mb-1.5">
             Manage
           </h1>
