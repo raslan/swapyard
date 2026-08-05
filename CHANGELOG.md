@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/raslan/swapyard/compare/v1.3.0...v1.4.0) (2026-08-05)
+
+
+### Features
+
+* update internal navigation ([40e6c02](https://github.com/raslan/swapyard/commit/40e6c025568995e3cb9e35cca537aa7d1c918592))
+
 ## [1.3.0](https://github.com/raslan/swapyard/compare/v1.2.2...v1.3.0) (2026-08-04)
 
 
