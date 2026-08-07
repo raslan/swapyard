@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/raslan/swapyard/compare/v1.4.0...v1.4.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* switch shipped image base to Alpine to avoid glibc arena bloat ([ac2fe01](https://github.com/raslan/swapyard/commit/ac2fe0143b45676aaa7693a91be91ff2903e4fa3))
+
 ## [1.4.0](https://github.com/raslan/swapyard/compare/v1.3.0...v1.4.0) (2026-08-05)
 
 
