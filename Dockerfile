@@ -15,8 +15,8 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---- Stage 2: shipped image ----
-FROM python:3.12-slim
-RUN useradd --uid 1000 --create-home --shell /bin/bash app
+FROM python:3.12-alpine
+RUN adduser -D -u 1000 -s /bin/sh app
 WORKDIR /app
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
