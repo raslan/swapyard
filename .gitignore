@@ -2,10 +2,14 @@
 docs/superpowers/
 CLAUDE.md
 HISTORY.md
+HISTORY.original.md
 .claude/
 AGENTS.md
 .superpowers/
 .mcp.json
+
+# Landing-page planning/materials — not committed, not part of the app
+marketing/
 
 # Python
 backend/.venv/
