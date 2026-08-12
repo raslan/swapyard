@@ -33,8 +33,6 @@ export const content = {
     label: "# fit check",
     title: "Know before you download",
     body: "Every model card shows params, size, and freshness at a glance. Declare your GPU once, and every quant tells you if it fits, with the best one marked Recommended.",
-    video: "/videos/02-selecting-a-model-to-download.webm",
-    caption: "Opening a model, reading its README, and checking VRAM fit on each quant.",
   },
   download: {
     label: "# download",

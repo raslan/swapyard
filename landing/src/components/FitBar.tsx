@@ -2,12 +2,19 @@ import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { AnchorIcon } from "./AnchorIcon";
+import { SectionLabel } from "./SectionLabel";
 import { content } from "../content";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export function FitBar() {
+type FitBarProps = {
+  label: string;
+  title: string;
+  body: string;
+};
+
+export function FitBar({ label, title, body }: FitBarProps) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
@@ -40,7 +47,7 @@ export function FitBar() {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: "+=1000",
+          end: "+=900",
           pin: true,
           scrub: 1,
         },
@@ -107,48 +114,58 @@ export function FitBar() {
   }, [reducedMotion, recommendedGb]);
 
   return (
-    <div ref={sectionRef} className="flex min-h-[50vh] flex-col justify-center gap-10">
-      <div ref={barRef} className="relative h-4 w-full rounded-sm bg-edge">
-        <div
-          className="absolute inset-y-0 left-0 rounded-sm bg-brand-dim"
-          style={{ width: "100%" }}
-        />
-        <div
-          ref={fillRef}
-          className="absolute inset-y-0 left-0 rounded-sm bg-brand shadow-[0_0_24px_-2px_var(--color-brand-glow)]"
-          style={{ width: `${capacityPercent(recommendedGb)}%` }}
-        />
-        <span className="absolute -top-8 right-0 font-mono text-sm font-medium text-text-secondary">
-          {content.vramCapacityGb} GB VRAM
-        </span>
+    <div ref={sectionRef} className="flex flex-col gap-12 py-24 sm:py-32">
+      <div className="mx-auto max-w-2xl px-6 text-center md:pl-16">
+        <SectionLabel>{label}</SectionLabel>
+        <h2 className="font-display text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl">
+          {title}
+        </h2>
+        <p className="mt-5 text-lg text-text-secondary">{body}</p>
       </div>
-      <div className="flex w-full flex-wrap items-center gap-3 sm:gap-5">
-        {content.quants.map((quant, index) => (
+
+      <div className="mx-auto w-full max-w-5xl px-6 md:pl-16">
+        <div ref={barRef} className="relative h-4 w-full rounded-sm bg-edge">
           <div
-            key={quant.label}
-            ref={(el) => {
-              badgeRefs.current[index] = el;
-            }}
-            className={
-              quant.fits
-                ? "flex items-center gap-3 rounded-md border border-brand/40 bg-brand-dim px-4 py-3 font-mono text-lg font-medium text-text-primary"
-                : "flex items-center gap-3 rounded-md border border-edge px-4 py-3 font-mono text-lg font-medium text-text-muted line-through"
-            }
-          >
-            <span>{quant.label}</span>
-            <span>{quant.gb} GB</span>
-            {!quant.fits && <span className="sr-only">does not fit</span>}
-            {quant.label === content.recommendedQuant && (
-              <span
-                ref={anchorRef}
-                className="flex items-center gap-1.5 text-sm font-medium text-brand opacity-0"
-              >
-                <AnchorIcon className="h-5 w-5" />
-                Recommended
-              </span>
-            )}
-          </div>
-        ))}
+            className="absolute inset-y-0 left-0 rounded-sm bg-brand-dim"
+            style={{ width: "100%" }}
+          />
+          <div
+            ref={fillRef}
+            className="absolute inset-y-0 left-0 rounded-sm bg-brand shadow-[0_0_24px_-2px_var(--color-brand-glow)]"
+            style={{ width: `${capacityPercent(recommendedGb)}%` }}
+          />
+          <span className="absolute -top-8 right-0 font-mono text-sm font-medium text-text-secondary">
+            {content.vramCapacityGb} GB VRAM
+          </span>
+        </div>
+        <div className="mt-10 flex w-full flex-wrap items-center gap-3 sm:gap-5">
+          {content.quants.map((quant, index) => (
+            <div
+              key={quant.label}
+              ref={(el) => {
+                badgeRefs.current[index] = el;
+              }}
+              className={
+                quant.fits
+                  ? "flex items-center gap-3 rounded-md border border-brand/40 bg-brand-dim px-4 py-3 font-mono text-lg font-medium text-text-primary"
+                  : "flex items-center gap-3 rounded-md border border-edge px-4 py-3 font-mono text-lg font-medium text-text-muted line-through"
+              }
+            >
+              <span>{quant.label}</span>
+              <span>{quant.gb} GB</span>
+              {!quant.fits && <span className="sr-only">does not fit</span>}
+              {quant.label === content.recommendedQuant && (
+                <span
+                  ref={anchorRef}
+                  className="flex items-center gap-1.5 text-sm font-medium text-brand opacity-0"
+                >
+                  <AnchorIcon className="h-5 w-5" />
+                  Recommended
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
