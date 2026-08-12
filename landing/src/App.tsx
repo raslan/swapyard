@@ -11,7 +11,6 @@ import { HistorySection } from "./components/HistorySection";
 import { InstallSection } from "./components/InstallSection";
 import { ManageSection } from "./components/ManageSection";
 import { SafetySection } from "./components/SafetySection";
-import { TechFacts } from "./components/TechFacts";
 
 export default function App() {
   return (
@@ -35,7 +34,6 @@ export default function App() {
         <HistorySection />
         <SafetySection />
         <ManageSection />
-        <TechFacts />
       </main>
       <Footer />
     </div>

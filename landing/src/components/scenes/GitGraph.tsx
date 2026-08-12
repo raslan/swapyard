@@ -17,21 +17,21 @@ const BRANCH: [number, number, number][] = [
 
 export function GitGraph() {
   return (
-    <>
+    <group position={[3, 0, 0]}>
       <Line points={TRUNK} color="#565f6b" lineWidth={2} />
       <Line points={BRANCH} color="#34d399" lineWidth={2.5} />
       {TRUNK.map((point, i) => (
         <mesh key={`trunk-${i}`} position={point}>
           <sphereGeometry args={[0.11, 16, 16]} />
-          <meshBasicMaterial color="#e6e1cf" />
+          <meshBasicMaterial color="#e6e1cf" transparent opacity={0.8} />
         </mesh>
       ))}
       {[BRANCH[1], BRANCH[2]].map((point, i) => (
         <mesh key={`branch-${i}`} position={point}>
           <sphereGeometry args={[0.11, 16, 16]} />
-          <meshBasicMaterial color="#34d399" />
+          <meshBasicMaterial color="#34d399" transparent opacity={0.8} />
         </mesh>
       ))}
-    </>
+    </group>
   );
 }

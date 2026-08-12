@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
+import { content } from "../content";
 import { AnchorBackdrop } from "./AnchorBackdrop";
 import { DataField } from "./DataField";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 
 export function Hero() {
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const lineRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const paraRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -20,9 +21,9 @@ export function Hero() {
           { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.8, ease: "power3.out" },
         )
         .fromTo(
-          lineRefs.current,
-          { y: 36, opacity: 0, filter: "blur(6px)" },
-          { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.8, ease: "power3.out", stagger: 0.12 },
+          paraRefs.current,
+          { y: 24, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.7, ease: "power2.out", stagger: 0.12 },
           "-=0.35",
         );
     });
@@ -35,41 +36,27 @@ export function Hero() {
       <AnchorBackdrop />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-transparent to-surface/40" />
 
-      <div className="relative mx-auto w-full max-w-5xl px-6 md:pl-16">
+      <div className="relative w-full px-6 md:pl-16">
         <h1
           ref={titleRef}
           className="max-w-2xl font-display text-[clamp(2rem,4.4vw,3.75rem)] font-semibold leading-[1.05] tracking-tight text-text-primary"
         >
-          Swapyard is a self-hosted UI for finding, downloading, and configuring GGUF models
-          with llama-swap.
+          {content.hero.headline}
         </h1>
 
-        <h2 className="mt-10 max-w-xl border-l-2 border-brand/50 pl-6 font-mono text-2xl font-medium leading-tight sm:text-3xl">
-          <span
-            ref={(el) => {
-              lineRefs.current[0] = el;
-            }}
-            className="block text-text-secondary"
-          >
-            Ollama hides too much.
-          </span>
-          <span
-            ref={(el) => {
-              lineRefs.current[1] = el;
-            }}
-            className="mt-1 block text-text-secondary"
-          >
-            llama.cpp shows too little.
-          </span>
-          <span
-            ref={(el) => {
-              lineRefs.current[2] = el;
-            }}
-            className="mt-2 block text-brand [text-shadow:0_0_60px_var(--color-brand-glow)]"
-          >
-            So I built the missing middle.
-          </span>
-        </h2>
+        <div className="mt-10 max-w-lg space-y-4 border-l-2 border-brand/50 pl-6">
+          {content.hero.paragraphs.map((paragraph, index) => (
+            <p
+              key={paragraph}
+              ref={(el) => {
+                paraRefs.current[index] = el;
+              }}
+              className="text-lg leading-relaxed text-text-secondary"
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
       </div>
 
       <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-text-muted">

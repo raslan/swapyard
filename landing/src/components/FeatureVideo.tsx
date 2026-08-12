@@ -54,7 +54,8 @@ export function FeatureVideo({ src, caption }: FeatureVideoProps) {
           playsInline
           preload="metadata"
           controls={reducedMotion}
-          aria-hidden="true"
+          aria-hidden={reducedMotion ? undefined : "true"}
+          aria-label={reducedMotion ? caption : undefined}
           className="block w-full aspect-[8/5]"
         />
       </div>

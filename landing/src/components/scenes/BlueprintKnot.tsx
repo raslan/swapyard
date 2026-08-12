@@ -14,9 +14,9 @@ export function BlueprintKnot() {
   });
 
   return (
-    <mesh ref={meshRef}>
+    <mesh ref={meshRef} position={[3.5, 0, 0]}>
       <torusKnotGeometry args={[2, 0.45, 128, 16]} />
-      <meshBasicMaterial color="#34d399" wireframe />
+      <meshBasicMaterial color="#34d399" wireframe transparent opacity={0.6} />
     </mesh>
   );
 }

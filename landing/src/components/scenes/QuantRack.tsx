@@ -12,7 +12,7 @@ export function QuantRack() {
   const reducedMotion = useReducedMotion();
 
   return (
-    <group rotation={[0.1, -0.35, 0]}>
+    <group position={[3, 0, 0]} rotation={[0.1, -0.35, 0]}>
       {SLOTS.map((slot, i) => (
         <Float
           key={i}
@@ -23,11 +23,11 @@ export function QuantRack() {
         >
           <mesh position={[slot.pulled ? 1.1 : 0, slot.y, 0]}>
             <boxGeometry args={[3, 0.65, 1.4]} />
-            <meshStandardMaterial
-              color="#080808"
-              emissive={slot.danger ? "#f07178" : "#34d399"}
-              emissiveIntensity={0.35}
-              roughness={0.4}
+            <meshBasicMaterial
+              color={slot.danger ? "#f07178" : "#34d399"}
+              wireframe
+              transparent
+              opacity={0.6}
             />
           </mesh>
         </Float>

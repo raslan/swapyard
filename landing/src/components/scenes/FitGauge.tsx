@@ -14,7 +14,7 @@ export function FitGauge() {
   });
 
   return (
-    <group rotation={[0, 0, Math.PI * 0.75]}>
+    <group position={[3, 0, 0]} rotation={[0, 0, Math.PI * 0.75]}>
       <mesh>
         <torusGeometry args={[2.3, 0.09, 16, 64, Math.PI * 1.5]} />
         <meshBasicMaterial color="#141414" />

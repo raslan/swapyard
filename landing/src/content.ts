@@ -1,21 +1,18 @@
 export const content = {
   github: "https://github.com/raslan/swapyard",
   llamaSwap: "https://github.com/mostlygeek/llama-swap",
-  compose: `services:
-  swapyard:
-    image: ghcr.io/raslan/swapyard:latest
-    container_name: swapyard
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    volumes:
-      - ~/.cache/huggingface/hub:/home/app/.cache/huggingface/hub
-      - ./config.yaml:/app/llama-swap-config.yaml
-      - ./data:/app/data`,
+  hero: {
+    headline:
+      "Swapyard is a self-hosted UI for finding, downloading, and configuring GGUF models with llama-swap.",
+    paragraphs: [
+      "I was using Ollama, and it had one flaw for me: not enough control.",
+      "I wanted to build on the shoulders of giants, llama.cpp and llama-swap, and put together just enough of a UI to make that side of local AI genuinely comfortable to run.",
+    ],
+  },
   install: {
     label: "# install",
     title: "One container. Bring your own llama-swap.",
-    body: "Swapyard needs a Hugging Face cache directory, llama-swap's config.yaml, and a small local data directory. Run it alongside llama-swap and point both at the same paths.",
+    body: "Full setup, docker-compose, and configuration options are documented on GitHub.",
   },
   quants: [
     { label: "Q4_K_M", gb: 4.1, fits: true },
@@ -69,15 +66,6 @@ export const content = {
     label: "# manage",
     title: "One row per model",
     body: "Every downloaded file rolls into one row, with size on disk. Keep multiple quants of the same model around for different speed and quality tradeoffs, and delete just one without touching the rest.",
-  },
-  facts: {
-    label: "# facts",
-    items: [
-      "One Docker image, one container, port 8000 by default.",
-      "Needs a Hugging Face cache directory, llama-swap's config.yaml, and a small local data directory for settings and revision history.",
-      "Backend is FastAPI. Frontend is React and TypeScript. The config editor is Monaco.",
-      "What Swapyard shows always matches what is actually on disk, because it reads Hugging Face's own local cache directory instead of keeping a separate database.",
-    ],
   },
   footer: {
     body: "Swapyard is self-hosted. No accounts, no cloud component, just a UI over your own hardware and your own llama-swap instance.",

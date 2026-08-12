@@ -12,7 +12,7 @@ export function PacketStream() {
   const packets = useMemo(
     () =>
       Array.from({ length: 26 }, () => ({
-        x: (Math.random() - 0.5) * 11,
+        x: (Math.random() - 0.5) * 14 + 3,
         y: Math.random() * 14 - 7,
         z: (Math.random() - 0.5) * 5,
         speed: 0.6 + Math.random() * 0.9,
@@ -33,12 +33,8 @@ export function PacketStream() {
     <group ref={groupRef}>
       {packets.map((packet, i) => (
         <mesh key={i} position={[packet.x, packet.y, packet.z]}>
-          <boxGeometry args={[0.32, 0.32, 0.32]} />
-          <meshStandardMaterial
-            color={packet.color}
-            emissive={packet.color}
-            emissiveIntensity={0.6}
-          />
+          <boxGeometry args={[0.4, 0.4, 0.4]} />
+          <meshBasicMaterial color={packet.color} wireframe transparent opacity={0.7} />
         </mesh>
       ))}
     </group>
