@@ -40,33 +40,45 @@ export function FitBar() {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: "+=1200",
+          end: "+=1000",
           pin: true,
           scrub: 1,
         },
       });
 
+      // Badges still enter left to right in reading order, but the
+      // recommended quant's lock-in is scheduled as the last beat in the
+      // timeline (not just the last badge to enter) so the pin releases
+      // right on the payoff instead of trailing off on the rejected
+      // quant's exit animation.
+      let nextSlot = 0;
+      const slots = content.quants.map((quant) =>
+        quant.label === content.recommendedQuant ? content.quants.length - 1 : nextSlot++,
+      );
+
       content.quants.forEach((quant, index) => {
         const badge = badgeRefs.current[index];
         if (!badge) return;
+
+        const delay = slots[index] * 0.4;
 
         timeline.fromTo(
           badge,
           { x: 240, opacity: 0 },
           { x: 0, opacity: 1, duration: 0.5, ease: "power2.out" },
-          index * 0.4,
+          delay,
         );
 
         if (!quant.fits) {
           timeline.to(
             badge,
             { x: -12, duration: 0.08, repeat: 3, yoyo: true, ease: "power1.inOut" },
-            index * 0.4 + 0.5,
+            delay + 0.5,
           );
           timeline.to(
             badge,
             { x: 240, opacity: 0, duration: 0.4, ease: "power2.in" },
-            index * 0.4 + 0.85,
+            delay + 0.85,
           );
         }
 
@@ -75,7 +87,7 @@ export function FitBar() {
             anchor,
             { opacity: 0, scale: 0.6 },
             { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" },
-            index * 0.4 + 0.55,
+            delay + 0.55,
           );
           timeline.fromTo(
             fill,
@@ -85,7 +97,7 @@ export function FitBar() {
               duration: 0.4,
               ease: "back.out(2)",
             },
-            index * 0.4 + 0.55,
+            delay + 0.55,
           );
         }
       });
@@ -95,7 +107,7 @@ export function FitBar() {
   }, [reducedMotion, recommendedGb]);
 
   return (
-    <div ref={sectionRef} className="flex min-h-[60vh] flex-col justify-center gap-12">
+    <div ref={sectionRef} className="flex min-h-[50vh] flex-col justify-center gap-10">
       <div ref={barRef} className="relative h-4 w-full rounded-sm bg-edge">
         <div
           className="absolute inset-y-0 left-0 rounded-sm bg-brand-dim"

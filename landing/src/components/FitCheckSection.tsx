@@ -16,11 +16,11 @@ export function FitCheckSection() {
         <p className="mt-5 text-lg text-text-secondary">{body}</p>
       </div>
 
-      <div className="mx-auto mt-4 max-w-5xl px-6 md:pl-16">
+      <div className="mx-auto mt-2 max-w-5xl px-6 md:pl-16">
         <FitBar />
       </div>
 
-      <div className="mx-auto mt-8 max-w-4xl px-4 md:pl-16 sm:px-6">
+      <div className="mx-auto mt-4 max-w-4xl px-4 md:pl-16 sm:px-6">
         <FeatureVideo src={video} caption={caption} />
       </div>
     </section>
