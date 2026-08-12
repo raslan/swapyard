@@ -57,10 +57,10 @@ export function FeatureVideo({ src, caption }: FeatureVideoProps) {
           aria-hidden="true"
           className="block w-full aspect-[8/5]"
         />
-        <figcaption className="border-t border-edge px-4 py-3 text-sm text-text-secondary">
-          {caption}
-        </figcaption>
       </div>
+      <figcaption className="border-t border-edge px-4 py-3 text-sm text-text-secondary">
+        {caption}
+      </figcaption>
     </figure>
   );
 }
