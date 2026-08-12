@@ -1,16 +1,21 @@
-import { content } from "./content";
+import { Aurora } from "./components/Aurora";
+import { ConfigGenSection } from "./components/ConfigGenSection";
+import { DiscoverSection } from "./components/DiscoverSection";
+import { DownloadSection } from "./components/DownloadSection";
+import { FitCheckSection } from "./components/FitCheckSection";
 import { Footer } from "./components/Footer";
 import { Gutter } from "./components/Gutter";
 import { Header } from "./components/Header";
 import { Hero } from "./components/Hero";
-import { FeatureSection } from "./components/FeatureSection";
-import { SafetySection } from "./components/SafetySection";
+import { HistorySection } from "./components/HistorySection";
+import { InstallSection } from "./components/InstallSection";
 import { ManageSection } from "./components/ManageSection";
+import { SafetySection } from "./components/SafetySection";
 import { TechFacts } from "./components/TechFacts";
 
 export default function App() {
   return (
-    <div id="top" className="bg-surface text-text-primary">
+    <div id="top" className="overflow-x-hidden bg-surface text-text-primary">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-6 focus:top-6 focus:z-50 focus:rounded-md focus:bg-brand focus:px-4 focus:py-2 focus:font-mono focus:text-sm focus:text-void"
@@ -19,11 +24,15 @@ export default function App() {
       </a>
       <Header />
       <Gutter />
-      <main id="main-content" className="mx-auto max-w-5xl px-6 md:pl-16">
+      <main id="main-content">
         <Hero />
-        {content.features.map((feature, index) => (
-          <FeatureSection key={feature.label} {...feature} reverse={index % 2 === 1} />
-        ))}
+        <Aurora />
+        <InstallSection />
+        <DiscoverSection />
+        <FitCheckSection />
+        <DownloadSection />
+        <ConfigGenSection />
+        <HistorySection />
         <SafetySection />
         <ManageSection />
         <TechFacts />

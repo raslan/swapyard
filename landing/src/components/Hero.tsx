@@ -1,53 +1,81 @@
-import { content } from "../content";
-import { ComposeBlock } from "./ComposeBlock";
-import { FitBar } from "./FitBar";
+import { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { AnchorBackdrop } from "./AnchorBackdrop";
+import { DataField } from "./DataField";
+import { useReducedMotion } from "../hooks/useReducedMotion";
 
 export function Hero() {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const lineRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (reducedMotion) return;
+    const ctx = gsap.context(() => {
+      gsap
+        .timeline({ delay: 0.15 })
+        .fromTo(
+          titleRef.current,
+          { y: 24, opacity: 0, filter: "blur(6px)" },
+          { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.8, ease: "power3.out" },
+        )
+        .fromTo(
+          lineRefs.current,
+          { y: 36, opacity: 0, filter: "blur(6px)" },
+          { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.8, ease: "power3.out", stagger: 0.12 },
+          "-=0.35",
+        );
+    });
+    return () => ctx.revert();
+  }, [reducedMotion]);
+
   return (
-    <section className="relative py-20 sm:py-28">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-24 -top-32 h-[520px] w-[520px] rounded-full opacity-70 blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, var(--color-brand-glow) 0%, transparent 70%)",
-        }}
-      />
-      <h1 className="relative max-w-3xl font-display text-5xl font-semibold tracking-tight text-text-primary sm:text-6xl md:text-7xl">
-        Find, download, and configure{" "}
-        <span className="text-brand">GGUF models</span> for llama-swap.
-      </h1>
-      <p className="relative mt-6 max-w-xl text-lg text-text-secondary">
-        Swapyard edits{" "}
-        <a
-          href={content.llamaSwap}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-text-primary underline decoration-text-muted underline-offset-4 transition-colors hover:text-brand hover:decoration-brand"
+    <section className="relative flex h-[100svh] min-h-[640px] items-center overflow-hidden border-b border-edge/70">
+      <DataField className="absolute inset-0 h-full w-full" />
+      <AnchorBackdrop />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-transparent to-surface/40" />
+
+      <div className="relative mx-auto w-full max-w-5xl px-6 md:pl-16">
+        <h1
+          ref={titleRef}
+          className="max-w-2xl font-display text-[clamp(2rem,4.4vw,3.75rem)] font-semibold leading-[1.05] tracking-tight text-text-primary"
         >
-          llama-swap
-        </a>
-        's{" "}
-        <code className="rounded-sm bg-card px-1.5 py-0.5 font-mono text-base text-text-primary">
-          config.yaml
-        </code>{" "}
-        for you. It does not replace llama-swap itself.
-      </p>
-      <div className="relative mt-10 flex flex-col gap-6 sm:flex-row sm:items-start">
-        <a
-          href={content.github}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-md bg-brand px-6 py-3 font-mono text-sm font-medium text-void shadow-[0_0_32px_-4px_var(--color-brand-glow)] transition-transform hover:scale-[1.02] hover:opacity-90"
-        >
-          View on GitHub
-        </a>
-        <ComposeBlock code={content.compose} />
+          Swapyard is a self-hosted UI for finding, downloading, and configuring GGUF models
+          with llama-swap.
+        </h1>
+
+        <h2 className="mt-10 max-w-xl border-l-2 border-brand/50 pl-6 font-mono text-2xl font-medium leading-tight sm:text-3xl">
+          <span
+            ref={(el) => {
+              lineRefs.current[0] = el;
+            }}
+            className="block text-text-secondary"
+          >
+            Ollama hides too much.
+          </span>
+          <span
+            ref={(el) => {
+              lineRefs.current[1] = el;
+            }}
+            className="mt-1 block text-text-secondary"
+          >
+            llama.cpp shows too little.
+          </span>
+          <span
+            ref={(el) => {
+              lineRefs.current[2] = el;
+            }}
+            className="mt-2 block text-brand [text-shadow:0_0_60px_var(--color-brand-glow)]"
+          >
+            So I built the missing middle.
+          </span>
+        </h2>
       </div>
-      <p className="relative mt-16 font-mono text-xs tracking-wide text-text-muted">
-        scroll to see how it fits your GPU
-      </p>
-      <FitBar />
+
+      <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-text-muted">
+        <span className="font-mono text-xs tracking-wide">scroll</span>
+        <span className="h-8 w-px animate-pulse bg-text-muted" />
+      </div>
     </section>
   );
 }

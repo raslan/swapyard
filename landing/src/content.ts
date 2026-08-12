@@ -12,9 +12,10 @@ export const content = {
       - ~/.cache/huggingface/hub:/home/app/.cache/huggingface/hub
       - ./config.yaml:/app/llama-swap-config.yaml
       - ./data:/app/data`,
-  hero: {
-    headline: "Find, download, and configure GGUF models for llama-swap.",
-    sub: "Swapyard edits llama-swap's config.yaml for you. It does not replace llama-swap itself.",
+  install: {
+    label: "# install",
+    title: "One container. Bring your own llama-swap.",
+    body: "Swapyard needs a Hugging Face cache directory, llama-swap's config.yaml, and a small local data directory. Run it alongside llama-swap and point both at the same paths.",
   },
   quants: [
     { label: "Q4_K_M", gb: 4.1, fits: true },
@@ -24,52 +25,50 @@ export const content = {
   ],
   vramCapacityGb: 6,
   recommendedQuant: "Q6_K",
-  features: [
-    {
-      label: "# discover",
-      title: "Discover",
-      body: "Browse Hugging Face without leaving the app. Trending, Vision and multimodal, Agentic and coding, and Embedding tabs come from one real Hugging Face query, not fabricated categories. Full text search keeps a shareable URL.",
-      video: "/videos/01-browsing-discover-and-search.webm",
-      caption: "Browsing the Discover homepage, then searching with the URL updating live.",
-    },
-    {
-      label: "# fit check",
-      title: "Know before you download",
-      body: "Every model card shows param count, total size, and when it was last updated. Capability badges for Vision, Tools, Reasoning, and Code come from the model's own Hugging Face tags. Declare your GPU once in Settings and every quant shows whether it fits, with the largest fitting quant marked Recommended.",
-      video: "/videos/02-selecting-a-model-to-download.webm",
-      caption: "Opening a model, reading its README, and checking VRAM fit on each quant.",
-    },
-    {
-      label: "# download",
-      title: "Download",
-      body: "Downloads run over server-sent events with live progress. Some models download through Hugging Face's Xet backend, which reports progress in a couple of big jumps instead of smooth per-chunk updates. Swapyard labels that honestly instead of showing a misleading bar.",
-      video: "/videos/03-download-progress.webm",
-      caption: "A real model download, from click to completion.",
-    },
-    {
-      label: "# generate config",
-      title: "One dialog, not hand-written YAML",
-      body: "Turn a downloaded model into a working llama-swap config entry. The context window slider is capped at the model's real trained context length. KV-cache quantization options come live from llama-server --help, never hardcoded. Sampler parameters are pulled from the model's own generation_config.json, with a one-click fill you still have to press yourself. Reasoning controls live in an Advanced tab.",
-      video: "/videos/04-adding-a-config-entry.webm",
-      caption: "Creating a config entry: context slider, KV-cache quant, sampler fill, reasoning controls.",
-    },
-    {
-      label: "# history",
-      title: "Every change is a commit",
-      body: "The config editor is Monaco, with YAML syntax highlighting and autocomplete sourced from live llama-server --help output. Every apply validates the file, writes it, optionally health-checks against a running llama-swap, and commits the change to a git-backed revision history with a diff view.",
-      video: "/videos/05-git-managed-config-history.webm",
-      caption: "The config editor and a real git diff of the entry just created.",
-    },
-  ],
+  discover: {
+    label: "# discover",
+    title: "Browse Hugging Face, natively",
+    body: "Trending, Vision, Agentic, and Embedding tabs pull from one real Hugging Face query, not fabricated categories. Search updates the URL live, so a result is always one link away.",
+    video: "/videos/01-browsing-discover-and-search.webm",
+    caption: "Browsing the Discover homepage, then searching with the URL updating live.",
+  },
+  fitCheck: {
+    label: "# fit check",
+    title: "Know before you download",
+    body: "Every model card shows params, size, and freshness at a glance. Declare your GPU once, and every quant tells you if it fits, with the best one marked Recommended.",
+    video: "/videos/02-selecting-a-model-to-download.webm",
+    caption: "Opening a model, reading its README, and checking VRAM fit on each quant.",
+  },
+  download: {
+    label: "# download",
+    title: "Downloads you can trust",
+    body: "Progress streams live over SSE. When a model ships through Hugging Face's Xet backend, progress jumps in two big steps instead of smooth ticks, and Swapyard says so instead of faking a bar.",
+    video: "/videos/03-download-progress.webm",
+    caption: "A real model download, from click to completion.",
+  },
+  configGen: {
+    label: "# generate config",
+    title: "Skip the YAML",
+    body: "Turn any downloaded model into a llama-swap config entry from one dialog. Context length caps at what the model actually supports. KV-cache options come live from llama-server, never hardcoded. Sampler defaults come from the model itself, one click to fill, never applied automatically.",
+    video: "/videos/04-adding-a-config-entry.webm",
+    caption: "Creating a config entry: context slider, KV-cache quant, sampler fill, reasoning controls.",
+  },
+  history: {
+    label: "# history",
+    title: "Every change, a commit",
+    body: "The config editor is Monaco, with real llama-server autocomplete. Apply validates, writes, and commits to a git-backed history you can diff like any other file.",
+    video: "/videos/05-git-managed-config-history.webm",
+    caption: "The config editor and a real git diff of the entry just created.",
+  },
   safety: {
     label: "# fit, not guesswork",
     title: "Your hardware tells us",
-    body: "Swapyard does not calculate VRAM or context math and hope it is right. Every launch relies on llama-server's own --fit flag, which reads real free device memory at the moment it starts. An earlier version of this project tried to predict VRAM usage statically and was wrong by about 20x on real models, twice, in two different ways. Now the hardware answers instead of a formula.",
+    body: "Swapyard never calculates VRAM and hopes it is right. It relies on llama-server's own --fit flag, reading real free memory the moment it launches. Your hardware answers. Not a formula.",
   },
   manage: {
     label: "# manage",
     title: "One row per model",
-    body: "The Manage screen aggregates every downloaded file into one row per model, with size on disk. Multiple quants of the same model are a normal thing to keep around for different speed and quality tradeoffs, so a single quant can be deleted on its own without touching the rest.",
+    body: "Every downloaded file rolls into one row, with size on disk. Keep multiple quants of the same model around for different speed and quality tradeoffs, and delete just one without touching the rest.",
   },
   facts: {
     label: "# facts",

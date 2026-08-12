@@ -110,7 +110,7 @@ export function FitBar() {
           {content.vramCapacityGb} GB VRAM
         </span>
       </div>
-      <div className="flex flex-wrap items-center gap-5">
+      <div className="flex w-full flex-wrap items-center gap-3 sm:gap-5">
         {content.quants.map((quant, index) => (
           <div
             key={quant.label}

@@ -35,7 +35,7 @@ export function FeatureVideo({ src, caption }: FeatureVideoProps) {
   return (
     <figure
       ref={containerRef}
-      className="overflow-hidden rounded-lg border border-edge bg-card transition-shadow hover:shadow-[0_0_32px_var(--color-brand-glow)]"
+      className="overflow-hidden rounded-xl border border-edge bg-card shadow-[0_0_60px_-15px_var(--color-brand-glow)] transition-shadow hover:shadow-[0_0_70px_-10px_var(--color-brand-glow)]"
     >
       <div
         style={{
