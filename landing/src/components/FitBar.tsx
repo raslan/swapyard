@@ -62,8 +62,9 @@ export function FitBar() {
         }
 
         if (quant.label === content.recommendedQuant) {
-          timeline.to(
+          timeline.fromTo(
             anchor,
+            { opacity: 0, scale: 0.6 },
             { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" },
             index * 0.4 + 0.55,
           );
@@ -77,6 +78,9 @@ export function FitBar() {
   const capacityPercent = (gb: number) =>
     Math.min(100, (gb / content.vramCapacityGb) * 100);
 
+  const recommendedGb =
+    content.quants.find((q) => q.label === content.recommendedQuant)?.gb ?? 0;
+
   return (
     <div ref={sectionRef} className="flex min-h-[70vh] flex-col justify-center gap-10">
       <div ref={barRef} className="relative h-3 w-full rounded-sm bg-edge">
@@ -86,7 +90,7 @@ export function FitBar() {
         />
         <div
           className="absolute inset-y-0 left-0 rounded-sm bg-brand"
-          style={{ width: `${capacityPercent(content.vramCapacityGb)}%` }}
+          style={{ width: `${capacityPercent(recommendedGb)}%` }}
         />
         <span className="absolute -top-6 right-0 font-mono text-xs text-text-muted">
           {content.vramCapacityGb} GB VRAM
