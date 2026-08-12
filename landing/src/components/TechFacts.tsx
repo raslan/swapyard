@@ -5,6 +5,7 @@ export function TechFacts() {
   return (
     <section className="border-t border-edge py-16">
       <SectionLabel>{content.facts.label}</SectionLabel>
+      <h2 className="sr-only">Facts</h2>
       <ul className="grid gap-4 sm:grid-cols-2">
         {content.facts.items.map((item) => (
           <li

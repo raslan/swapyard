@@ -14,6 +14,8 @@ export function Header() {
         </a>
         <a
           href={content.github}
+          target="_blank"
+          rel="noopener noreferrer"
           className="font-mono text-sm text-text-secondary transition-colors hover:text-brand"
         >
           GitHub

@@ -10,19 +10,28 @@ gsap.registerPlugin(ScrollTrigger);
 export function FitBar() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const fillRef = useRef<HTMLDivElement>(null);
   const badgeRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const anchorRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLSpanElement>(null);
   const reducedMotion = useReducedMotion();
+
+  const recommendedGb =
+    content.quants.find((q) => q.label === content.recommendedQuant)?.gb ?? 0;
+
+  const capacityPercent = (gb: number) =>
+    Math.min(100, (gb / content.vramCapacityGb) * 100);
 
   useEffect(() => {
     const section = sectionRef.current;
     const bar = barRef.current;
     const anchor = anchorRef.current;
-    if (!section || !bar || !anchor) return;
+    const fill = fillRef.current;
+    if (!section || !bar || !anchor || !fill) return;
 
     if (reducedMotion) {
       gsap.set(badgeRefs.current, { x: 0, opacity: 1 });
       gsap.set(anchor, { opacity: 1, scale: 1 });
+      gsap.set(fill, { width: `${capacityPercent(recommendedGb)}%` });
       return;
     }
 
@@ -68,18 +77,22 @@ export function FitBar() {
             { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" },
             index * 0.4 + 0.55,
           );
+          timeline.fromTo(
+            fill,
+            { width: "0%" },
+            {
+              width: `${capacityPercent(recommendedGb)}%`,
+              duration: 0.4,
+              ease: "back.out(2)",
+            },
+            index * 0.4 + 0.55,
+          );
         }
       });
     }, section);
 
     return () => ctx.revert();
-  }, [reducedMotion]);
-
-  const capacityPercent = (gb: number) =>
-    Math.min(100, (gb / content.vramCapacityGb) * 100);
-
-  const recommendedGb =
-    content.quants.find((q) => q.label === content.recommendedQuant)?.gb ?? 0;
+  }, [reducedMotion, recommendedGb]);
 
   return (
     <div ref={sectionRef} className="flex min-h-[70vh] flex-col justify-center gap-10">
@@ -89,6 +102,7 @@ export function FitBar() {
           style={{ width: "100%" }}
         />
         <div
+          ref={fillRef}
           className="absolute inset-y-0 left-0 rounded-sm bg-brand"
           style={{ width: `${capacityPercent(recommendedGb)}%` }}
         />
@@ -111,6 +125,7 @@ export function FitBar() {
           >
             <span>{quant.label}</span>
             <span>{quant.gb} GB</span>
+            {!quant.fits && <span className="sr-only">does not fit</span>}
             {quant.label === content.recommendedQuant && (
               <span ref={anchorRef} className="flex items-center gap-1 text-brand opacity-0">
                 <AnchorIcon className="h-4 w-4" />
