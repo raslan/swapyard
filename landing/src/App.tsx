@@ -4,6 +4,9 @@ import { Gutter } from "./components/Gutter";
 import { Header } from "./components/Header";
 import { Hero } from "./components/Hero";
 import { FeatureSection } from "./components/FeatureSection";
+import { SafetySection } from "./components/SafetySection";
+import { ManageSection } from "./components/ManageSection";
+import { TechFacts } from "./components/TechFacts";
 
 export default function App() {
   return (
@@ -15,6 +18,9 @@ export default function App() {
         {content.features.map((feature, index) => (
           <FeatureSection key={feature.label} {...feature} reverse={index % 2 === 1} />
         ))}
+        <SafetySection />
+        <ManageSection />
+        <TechFacts />
       </main>
       <Footer />
     </div>
