@@ -1,5 +1,6 @@
 export const content = {
   github: "https://github.com/raslan/swapyard",
+  llamaSwap: "https://github.com/mostlygeek/llama-swap",
   compose: `services:
   swapyard:
     image: ghcr.io/raslan/swapyard:latest

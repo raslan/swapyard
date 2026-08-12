@@ -4,7 +4,7 @@ type SectionLabelProps = {
 
 export function SectionLabel({ children }: SectionLabelProps) {
   return (
-    <p className="mb-4 font-mono text-xs tracking-wide text-text-muted" aria-hidden="true">
+    <p className="mb-4 font-mono text-base font-medium tracking-wide text-brand sm:text-lg" aria-hidden="true">
       {children}
     </p>
   );

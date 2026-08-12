@@ -95,22 +95,22 @@ export function FitBar() {
   }, [reducedMotion, recommendedGb]);
 
   return (
-    <div ref={sectionRef} className="flex min-h-[70vh] flex-col justify-center gap-10">
-      <div ref={barRef} className="relative h-3 w-full rounded-sm bg-edge">
+    <div ref={sectionRef} className="flex min-h-[60vh] flex-col justify-center gap-12">
+      <div ref={barRef} className="relative h-4 w-full rounded-sm bg-edge">
         <div
           className="absolute inset-y-0 left-0 rounded-sm bg-brand-dim"
           style={{ width: "100%" }}
         />
         <div
           ref={fillRef}
-          className="absolute inset-y-0 left-0 rounded-sm bg-brand"
+          className="absolute inset-y-0 left-0 rounded-sm bg-brand shadow-[0_0_24px_-2px_var(--color-brand-glow)]"
           style={{ width: `${capacityPercent(recommendedGb)}%` }}
         />
-        <span className="absolute -top-6 right-0 font-mono text-xs text-text-muted">
+        <span className="absolute -top-8 right-0 font-mono text-sm font-medium text-text-secondary">
           {content.vramCapacityGb} GB VRAM
         </span>
       </div>
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-5">
         {content.quants.map((quant, index) => (
           <div
             key={quant.label}
@@ -119,16 +119,19 @@ export function FitBar() {
             }}
             className={
               quant.fits
-                ? "flex items-center gap-2 rounded-md border border-brand/40 bg-brand-dim px-3 py-2 font-mono text-sm text-text-primary"
-                : "flex items-center gap-2 rounded-md border border-edge px-3 py-2 font-mono text-sm text-text-muted line-through"
+                ? "flex items-center gap-3 rounded-md border border-brand/40 bg-brand-dim px-4 py-3 font-mono text-lg font-medium text-text-primary"
+                : "flex items-center gap-3 rounded-md border border-edge px-4 py-3 font-mono text-lg font-medium text-text-muted line-through"
             }
           >
             <span>{quant.label}</span>
             <span>{quant.gb} GB</span>
             {!quant.fits && <span className="sr-only">does not fit</span>}
             {quant.label === content.recommendedQuant && (
-              <span ref={anchorRef} className="flex items-center gap-1 text-brand opacity-0">
-                <AnchorIcon className="h-4 w-4" />
+              <span
+                ref={anchorRef}
+                className="flex items-center gap-1.5 text-sm font-medium text-brand opacity-0"
+              >
+                <AnchorIcon className="h-5 w-5" />
                 Recommended
               </span>
             )}
