@@ -2,8 +2,6 @@ import re
 
 from ruamel.yaml.scalarstring import LiteralScalarString
 
-_GGUF_EXT_RE = re.compile(r"\.gguf$", re.IGNORECASE)
-
 # --cache-type-k/-v's description reads e.g. "...allowed values: f32, f16, bf16,
 # q8_0, q4_0, q4_1, iq4_nl, q5_0, q5_1 (default: f16)" - this is the same free-text
 # format registerCmdFlagProvider's hover/completion already parses for the Monaco
@@ -61,6 +59,7 @@ def build_minimal_entry(
     reasoning: str | None = None,
     reasoning_budget: int | None = None,
     reasoning_budget_message: str | None = None,
+    mmproj_filename: str | None = None,
 ) -> dict:
     """Minimal safe-default config entry: no -ngl, no -c. Explicitly passes
     --fit so llama-server computes safe offload/context sizing live, against
@@ -87,13 +86,16 @@ def build_minimal_entry(
     schema default, and `ttl` is set to 600 seconds. Keys are ordered
     proxy/checkEndpoint/ttl/cmd to match real example configs.
 
-    llama.cpp's `-hf repo:X` resolution appends `.gguf` internally when
-    matching against the repo's file list, so if `filename` already ends in
-    `.gguf` the effective lookup becomes `....gguf.gguf` and matches
-    nothing (confirmed against real llama-server output). The `.gguf`
-    suffix is therefore stripped (case-insensitively) from the value used
-    in the `-hf` flag - `filename` itself still holds the real, full
-    filename as passed in.
+    The model file is pinned with an explicit `--hf-file <exact filename>`
+    (full name, `.gguf` and all) rather than folded into `-hf repo:<tag>`.
+    llama.cpp resolves a bare `:tag` by compiling it to a case-insensitive
+    regex (`tag + "[.-]"`) and `regex_search`-ing the repo's file list,
+    taking the FIRST hit - so a tag like `...-APEX-I-Compact` also matches
+    a sibling `...-APEX-I-Compact-v2D-lite.gguf` and, depending on listing
+    order, llama-server silently loads (and re-downloads, cache-missing)
+    the wrong quant. `--hf-file` is matched with an exact `path ==` compare
+    in llama.cpp's download planner, so it's unambiguous and hits the
+    Swapyard-populated cache. See HISTORY.md.
 
     `context_size`, when given, becomes an explicit `-c` - omitted (as
     before) it's left for --fit to decide. `cache_type` overrides the
@@ -117,11 +119,20 @@ def build_minimal_entry(
     llama-server would reject at startup. `reasoning_budget`/
     `reasoning_budget_message` map straight onto their own real flags and
     are meaningless without reasoning actually happening, but that's the
-    caller's judgment call, not enforced here."""
+    caller's judgment call, not enforced here.
+
+    `mmproj_filename`, when given, pins the vision projector to that exact
+    file via `--mmproj-url <HF resolve URL>`. Without it, llama-server's
+    implicit `-hf` mmproj auto-attach runs `find_best_mmproj`, which ignores
+    which mmproj quant was actually downloaded and picks the one whose
+    quant-bit count is closest to the model's - so a repo shipping more than
+    one mmproj can silently load a projector the user never chose. Setting
+    `--mmproj-url` also disables that heuristic. `--mmproj` (no `-url`) is
+    deliberately not used: it takes a local filesystem path, which is
+    meaningless when llama-server runs on a different host than Swapyard."""
     if reasoning is not None and reasoning not in _VALID_REASONING:
         raise ValueError(f"reasoning must be one of {_VALID_REASONING}, got {reasoning!r}")
 
-    hf_quant = _GGUF_EXT_RE.sub("", filename)
     resolved_cache_type = cache_type or _DEFAULT_CACHE_TYPE
     cmd_lines = [
         "llama-server",
@@ -145,7 +156,12 @@ def build_minimal_entry(
     if reasoning_budget_message is not None:
         escaped_message = reasoning_budget_message.replace('"', '\\"')
         cmd_lines.append(f'--reasoning-budget-message "{escaped_message}"')
-    cmd_lines.append(f"-hf {repo_id}:{hf_quant}")
+    cmd_lines.append(f"-hf {repo_id}")
+    cmd_lines.append(f"--hf-file {filename}")
+    if mmproj_filename:
+        cmd_lines.append(
+            f"--mmproj-url https://huggingface.co/{repo_id}/resolve/main/{mmproj_filename}"
+        )
     return {
         "proxy": "http://127.0.0.1:${PORT}",
         "checkEndpoint": "/health",

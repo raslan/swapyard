@@ -115,6 +115,9 @@ export function CreateConfigEntryDialog({ model }: { model: ManagedModel }) {
   const [modelId, setModelId] = useState(() => model.repoId.split("/").pop() ?? model.repoId);
   const [selectedFile, setSelectedFile] = useState(model.ggufFiles[0] ?? "");
   const [createError, setCreateError] = useState<string | null>(null);
+  // mmproj files are sorted; pin the first so llama-server loads exactly the
+  // projector that was downloaded, not whatever find_best_mmproj guesses.
+  const mmprojToPin = model.mmprojFiles[0] ?? undefined;
 
   const [flags, setFlags] = useState<LlamaServerFlag[]>([]);
   const [maxContext, setMaxContext] = useState<number | null>(null);
@@ -220,6 +223,7 @@ export function CreateConfigEntryDialog({ model }: { model: ManagedModel }) {
         reasoning: reasoning === "auto" ? undefined : reasoning,
         reasoningBudget: reasoningBudget !== "" ? Number(reasoningBudget) : undefined,
         reasoningBudgetMessage: reasoningBudget !== "" ? reasoningBudgetMessage : undefined,
+        mmprojFilename: mmprojToPin,
       });
       if (result.status === "ok") toast.success("Config entry created and verified healthy.");
       else if (result.status === "unverified")
@@ -289,6 +293,13 @@ export function CreateConfigEntryDialog({ model }: { model: ManagedModel }) {
                   </SelectContent>
                 </Select>
               </div>
+            )}
+            {mmprojToPin && (
+              <p className="text-xs text-text-muted">
+                Vision projector <span className="font-mono">{mmprojToPin}</span> will be pinned
+                via <span className="font-mono">--mmproj-url</span> so llama-server loads this exact
+                file instead of guessing.
+              </p>
             )}
 
             <div className="space-y-1.5">

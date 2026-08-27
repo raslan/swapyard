@@ -17,7 +17,8 @@ def test_build_minimal_entry_emits_only_hf_ref_port_macro_and_fit():
         "--flash-attn on\n"
         "--cache-type-k q8_0\n"
         "--cache-type-v q8_0\n"
-        "-hf unsloth/Qwen3.6-35B-A3B-MTP-GGUF:qwen3.6-35b-a3b-UD-Q4_K_M\n"
+        "-hf unsloth/Qwen3.6-35B-A3B-MTP-GGUF\n"
+        "--hf-file qwen3.6-35b-a3b-UD-Q4_K_M.gguf\n"
     )
     assert entry["cmd"] == expected_cmd
     # --fit is explicitly set; no -ngl, no -c anywhere - --fit is the only
@@ -51,22 +52,45 @@ def test_build_minimal_entry_round_trips_through_parse_cmd_model_ref():
 
     ref = parse_cmd_model_ref(entry["cmd"])
 
-    assert ref == {"kind": "hf", "repo_id": "org/repo", "quant": "model-Q4_K_M"}
+    assert ref == {"kind": "hf", "repo_id": "org/repo", "quant": "model-Q4_K_M.gguf"}
 
 
-def test_build_minimal_entry_strips_gguf_extension_from_hf_colon_value():
+def test_build_minimal_entry_pins_exact_file_with_hf_file_flag():
     repo_id = "bartowski/Qwen2.5-0.5B-Instruct-GGUF"
     filename = "Qwen2.5-0.5B-Instruct-IQ2_M.gguf"
     entry = build_minimal_entry(repo_id, filename)
 
-    assert f"-hf {repo_id}:Qwen2.5-0.5B-Instruct-IQ2_M\n" in entry["cmd"]
-    assert ".gguf.gguf" not in entry["cmd"]
+    # bare repo on -hf, exact filename (with .gguf) on --hf-file - no fuzzy
+    # `:tag` regex match, so a sibling like `...-IQ2_M-v2.gguf` can't shadow it
+    assert f"-hf {repo_id}\n" in entry["cmd"]
+    assert f"--hf-file {filename}\n" in entry["cmd"]
+    assert ":Qwen2.5" not in entry["cmd"]
 
 
-def test_build_minimal_entry_strips_gguf_extension_case_insensitively():
+def test_build_minimal_entry_passes_filename_through_verbatim():
     entry = build_minimal_entry("org/repo", "model-Q4_K_M.GGUF")
 
-    assert "-hf org/repo:model-Q4_K_M\n" in entry["cmd"]
+    assert "--hf-file model-Q4_K_M.GGUF\n" in entry["cmd"]
+
+
+def test_build_minimal_entry_omits_mmproj_url_by_default():
+    entry = build_minimal_entry("org/repo", "model-Q4_K_M.gguf")
+
+    assert "--mmproj" not in entry["cmd"]
+
+
+def test_build_minimal_entry_pins_mmproj_with_resolve_url_when_given():
+    entry = build_minimal_entry(
+        "org/repo", "model-Q4_K_M.gguf", mmproj_filename="mmproj-model-f16.gguf"
+    )
+
+    assert (
+        "--mmproj-url https://huggingface.co/org/repo/resolve/main/mmproj-model-f16.gguf\n"
+        in entry["cmd"]
+    )
+    # comes after the model ref, and does not use the local-path --mmproj flag
+    assert entry["cmd"].index("-hf org/repo") < entry["cmd"].index("--mmproj-url")
+    assert "--mmproj " not in entry["cmd"]
 
 
 def test_build_minimal_entry_omits_ctx_size_by_default():

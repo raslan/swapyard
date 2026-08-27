@@ -73,7 +73,30 @@ describe("CreateConfigEntryDialog", () => {
       reasoning: undefined,
       reasoningBudget: undefined,
       reasoningBudgetMessage: undefined,
+      mmprojFilename: undefined,
     });
+  });
+
+  it("auto-pins the downloaded mmproj file and shows a note", async () => {
+    const createSpy = vi
+      .spyOn(api, "createConfigEntry")
+      .mockResolvedValue({ status: "unverified", logs: null });
+    renderDialog({
+      ...baseModel,
+      ggufFiles: ["model-Q4_K_M.gguf"],
+      mmprojFiles: ["mmproj-model-f16.gguf"],
+    });
+
+    await openDialog();
+    expect(screen.getByText(/mmproj-model-f16\.gguf/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
+
+    expect(createSpy).toHaveBeenCalledWith(
+      baseModel.repoId,
+      "model-Q4_K_M.gguf",
+      expect.any(String),
+      expect.objectContaining({ mmprojFilename: "mmproj-model-f16.gguf" }),
+    );
   });
 
   it("defaults the model id to the last path segment of the repo id", async () => {

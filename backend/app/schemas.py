@@ -105,11 +105,23 @@ class CreateModelEntryRequest(BaseModel):
     reasoning: Literal["on", "off"] | None = None
     reasoning_budget: int | None = None
     reasoning_budget_message: str | None = None
+    mmproj_filename: str | None = None
 
 
 class ConfigApplyResponse(BaseModel):
     status: str
     logs: str | None = None
+
+
+class NormalizeReportItem(BaseModel):
+    model_id: str
+    changes: list[str]
+    skipped: str | None = None
+
+
+class ConfigNormalizeResponse(BaseModel):
+    content: str
+    report: list[NormalizeReportItem]
 
 
 class ConfigRevisionResponse(BaseModel):

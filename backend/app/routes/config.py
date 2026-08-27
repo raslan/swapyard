@@ -9,6 +9,7 @@ from app.routes.settings import SETTINGS_PATH
 from app.schemas import (
     ConfigApplyRequest,
     ConfigApplyResponse,
+    ConfigNormalizeResponse,
     ConfigResponse,
     ConfigRevisionResponse,
     ConfigStatusResponse,
@@ -22,8 +23,10 @@ from app.services.config import (
     apply_config,
     get_status,
     list_revisions,
+    normalize_config_entries,
     read_config,
 )
+from app.services.manage import list_managed_models
 from app.services.model_entry import build_minimal_entry, cache_type_options
 from app.services.settings import read_settings
 
@@ -55,6 +58,21 @@ async def get_config() -> ConfigResponse:
 @router.get("/schema")
 async def get_config_schema() -> dict:
     return SCHEMA
+
+
+@router.post("/normalize", response_model=ConfigNormalizeResponse)
+async def post_config_normalize() -> ConfigNormalizeResponse:
+    """Rewrite legacy `-hf repo:quant` model entries into the unambiguous
+    `-hf repo` + `--hf-file` form and pin `--mmproj-url` where a projector is
+    downloaded. Returns the rewritten content for the editor to review - does
+    not apply or commit anything."""
+    content, _ = read_config(CONFIG_PATH)
+    downloads = {
+        m.repo_id: {"gguf": m.gguf_files, "mmproj": m.mmproj_files}
+        for m in list_managed_models()
+    }
+    new_content, report = normalize_config_entries(content, downloads)
+    return ConfigNormalizeResponse(content=new_content, report=report)
 
 
 @router.get("/status", response_model=ConfigStatusResponse)
@@ -109,6 +127,7 @@ async def post_config_model(body: CreateModelEntryRequest) -> Response:
         reasoning=body.reasoning,
         reasoning_budget=body.reasoning_budget,
         reasoning_budget_message=body.reasoning_budget_message,
+        mmproj_filename=body.mmproj_filename,
     )
 
     try:

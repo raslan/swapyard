@@ -173,7 +173,8 @@ def test_post_config_models_creates_minimal_entry_and_applies(config_client):
 
     config_content = config_file.read_text()
     assert "my-model:" in config_content
-    assert "org/repo:model-Q4_K_M" in config_content
+    assert "-hf org/repo" in config_content
+    assert "--hf-file model-Q4_K_M.gguf" in config_content
 
 
 def test_post_config_models_rejects_duplicate_model_id(config_client):
@@ -307,3 +308,74 @@ def test_post_config_models_accepts_any_cache_type_when_flags_missing(config_cli
 
     assert resp.status_code == 200
     assert "--cache-type-k q4_0" in config_file.read_text()
+
+
+def test_post_config_normalize_rewrites_hf_colon_quant_and_pins_mmproj(
+    config_client, monkeypatch
+):
+    client, config_file = config_client
+    config_file.write_text(
+        "models:\n"
+        "  kat:\n"
+        "    cmd: |\n"
+        "      llama-server\n"
+        "      -hf org/vision-GGUF:model-Q4_K_M\n"
+    )
+    monkeypatch.setattr(
+        "app.routes.config.list_managed_models",
+        lambda: [
+            SimpleNamespace(
+                repo_id="org/vision-GGUF",
+                gguf_files=["model-Q4_K_M.gguf"],
+                mmproj_files=["mmproj-model-f16.gguf"],
+            )
+        ],
+    )
+
+    resp = client.post("/api/config/normalize")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "-hf org/vision-GGUF\n" in body["content"]
+    assert "--hf-file model-Q4_K_M.gguf\n" in body["content"]
+    assert "resolve/main/mmproj-model-f16.gguf" in body["content"]
+    assert body["report"] == [
+        {
+            "model_id": "kat",
+            "changes": [
+                "pinned --hf-file model-Q4_K_M.gguf",
+                "pinned --mmproj-url mmproj-model-f16.gguf",
+            ],
+            "skipped": None,
+        }
+    ]
+    # nothing written to disk - review-in-editor flow
+    assert ":model-Q4_K_M" in config_file.read_text()
+
+
+def test_post_config_normalize_is_noop_for_already_clean_config(config_client, monkeypatch):
+    client, config_file = config_client
+    clean = (
+        "models:\n"
+        "  m:\n"
+        "    cmd: |\n"
+        "      llama-server\n"
+        "      -hf org/repo-GGUF\n"
+        "      --hf-file model-Q4_K_M.gguf\n"
+    )
+    config_file.write_text(clean)
+    monkeypatch.setattr(
+        "app.routes.config.list_managed_models",
+        lambda: [
+            SimpleNamespace(
+                repo_id="org/repo-GGUF",
+                gguf_files=["model-Q4_K_M.gguf"],
+                mmproj_files=[],
+            )
+        ],
+    )
+
+    resp = client.post("/api/config/normalize")
+
+    assert resp.status_code == 200
+    assert resp.json() == {"content": clean, "report": []}

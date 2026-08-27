@@ -7,7 +7,9 @@ import {
   getConfig,
   getConfigHistory,
   getConfigStatus,
+  normalizeConfig,
 } from "@/lib/api";
+import type { NormalizeReportItem } from "@/lib/api";
 import type { ConfigRevision, ConfigStatus } from "@/types/config";
 
 type ApplyResult =
@@ -98,6 +100,18 @@ export function useConfig() {
     setContent(revision.content);
   }, []);
 
+  const [normalizing, setNormalizing] = useState(false);
+  const normalize = useCallback(async (): Promise<NormalizeReportItem[]> => {
+    setNormalizing(true);
+    try {
+      const { content: fixed, report } = await normalizeConfig();
+      setContent(fixed);
+      return report;
+    } finally {
+      setNormalizing(false);
+    }
+  }, []);
+
   return {
     content,
     isDirty: content !== savedContent,
@@ -111,6 +125,8 @@ export function useConfig() {
     saveError,
     setContent,
     save,
+    normalize,
+    normalizing,
     resolveConflictKeepMine,
     resolveConflictLoadLatest,
     loadRevisionIntoEditor,

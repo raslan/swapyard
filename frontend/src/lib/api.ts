@@ -224,6 +224,19 @@ export async function getConfigFlags(): Promise<LlamaServerFlag[]> {
   return request<LlamaServerFlag[]>("/api/config/flags");
 }
 
+export interface NormalizeReportItem {
+  model_id: string;
+  changes: string[];
+  skipped: string | null;
+}
+
+export async function normalizeConfig(): Promise<{
+  content: string;
+  report: NormalizeReportItem[];
+}> {
+  return request("/api/config/normalize", { method: "POST" });
+}
+
 export async function applyConfig(content: string, baseHash: string): Promise<ApplyConfigResult> {
   const resp = await fetch("/api/config", {
     method: "POST",
@@ -256,6 +269,7 @@ export async function createConfigEntry(
     reasoning?: "on" | "off";
     reasoningBudget?: number;
     reasoningBudgetMessage?: string;
+    mmprojFilename?: string;
   },
 ): Promise<ApplyConfigResult> {
   const resp = await fetch("/api/config/models", {
@@ -274,6 +288,7 @@ export async function createConfigEntry(
       reasoning: options?.reasoning ?? null,
       reasoning_budget: options?.reasoningBudget ?? null,
       reasoning_budget_message: options?.reasoningBudgetMessage ?? null,
+      mmproj_filename: options?.mmprojFilename ?? null,
     }),
   });
 

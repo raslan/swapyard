@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import io
 import json
+import re
 import shlex
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from dulwich import porcelain
 from dulwich.repo import Repo
 from jsonschema import Draft7Validator
 from ruamel.yaml import YAML
+from ruamel.yaml.scalarstring import LiteralScalarString
 
 
 def hash_content(content: str) -> str:
@@ -43,22 +45,33 @@ def validate_config(content: str) -> list[str]:
     ]
 
 
-_MODEL_FLAGS = {"-hf", "--hf-repo"}
+_MODEL_FLAGS = {"-hf", "-hfr", "--hf-repo"}
+_HF_FILE_FLAGS = {"-hff", "--hf-file"}
 _PATH_FLAGS = {"-m", "--model"}
 
 
 def parse_cmd_model_ref(cmd: str) -> dict | None:
-    """Extract which downloaded model a model entry's `cmd` points at, if any."""
+    """Extract which downloaded model a model entry's `cmd` points at, if any.
+
+    Handles both shapes Swapyard has emitted: the current
+    `-hf <repo>` + `--hf-file <exact filename.gguf>` pair, and the older
+    `-hf <repo>:<quant>` single flag. The quant field carries whichever the
+    entry used (the `--hf-file` value wins when both are present)."""
     try:
         tokens = shlex.split(cmd)
     except ValueError:
         return None
+    repo_id = quant = None
     for i, tok in enumerate(tokens[:-1]):
         if tok in _MODEL_FLAGS:
-            repo_id, _, quant = tokens[i + 1].partition(":")
-            return {"kind": "hf", "repo_id": repo_id, "quant": quant or None}
-        if tok in _PATH_FLAGS:
+            repo_id, _, colon_quant = tokens[i + 1].partition(":")
+            quant = quant or (colon_quant or None)
+        elif tok in _HF_FILE_FLAGS:
+            quant = tokens[i + 1]
+        elif tok in _PATH_FLAGS:
             return {"kind": "path", "path": tokens[i + 1]}
+    if repo_id is not None:
+        return {"kind": "hf", "repo_id": repo_id, "quant": quant}
     return None
 
 
@@ -131,6 +144,128 @@ def add_model_entry(content: str, model_id: str, entry: dict) -> str:
     out = io.StringIO()
     _RUAMEL_YAML.dump(data, out)
     return out.getvalue()
+
+
+_MMPROJ_FLAGS = ("--mmproj", "-mm", "--mmproj-url", "-mmu")
+# `-hf <repo>[:<quant>]` when it sits alone on its own line (block-scalar cmd,
+# one flag per line - how build_minimal_entry writes them).
+_HF_LINE_RE = re.compile(
+    r"(?m)^(?P<indent>[ \t]*)(?P<flag>-hf|-hfr|--hf-repo)[ \t]+(?P<value>\S+)[ \t]*$"
+)
+# Same flag anywhere on a single-line cmd (`cmd: llama-server -hf a/b:q ...`).
+_HF_INLINE_RE = re.compile(r"(?P<flag>-hf|-hfr|--hf-repo)[ \t]+(?P<value>\S+)")
+
+
+def _resolve_hf_file(quant: str, gguf_files: list[str]) -> str | None:
+    """Map a legacy `-hf <repo>:<quant>` value onto an exact downloaded .gguf
+    filename. `quant` is whatever Swapyard (or a hand edit) put after the colon:
+    usually the full filename minus `.gguf`, sometimes a bare quant tag like
+    `Q4_K_M`. Returns None when it can't be pinned unambiguously - caller leaves
+    that entry untouched and reports it."""
+    if not quant:
+        return None
+    if quant in gguf_files:
+        return quant
+    if f"{quant}.gguf" in gguf_files:
+        return f"{quant}.gguf"
+    # llama.cpp's own fuzzy rule: the tag followed by `.` or `-`, case-insensitive.
+    pattern = re.compile(re.escape(quant) + r"[.-]", re.IGNORECASE)
+    matches = [f for f in gguf_files if pattern.search(f)]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _normalize_cmd(
+    cmd: str, gguf_files: list[str], mmproj_files: list[str]
+) -> tuple[str, list[str], str | None]:
+    """Rewrite one entry's `cmd`: split `-hf repo:quant` into `-hf repo` +
+    `--hf-file <exact>`, and add `--mmproj-url` when the repo has a downloaded
+    projector and the cmd pins none. Returns (new_cmd, changes, skipped_reason);
+    new_cmd == cmd when there is nothing to do. Idempotent."""
+    is_block = "\n" in cmd
+    m = _HF_LINE_RE.search(cmd) if is_block else _HF_INLINE_RE.search(cmd)
+    if not m:
+        return cmd, [], None
+
+    indent = m.groupdict().get("indent", "") or ""
+    repo_id, _, quant = m.group("value").partition(":")
+    has_hf_file = bool(re.search(r"(?:^|\s)(?:-hff|--hf-file)\s", cmd))
+    has_mmproj = any(re.search(rf"(?:^|\s){re.escape(f)}\s", cmd) for f in _MMPROJ_FLAGS)
+
+    changes: list[str] = []
+    skipped: str | None = None
+    new_cmd = cmd
+
+    if quant and not has_hf_file:
+        filename = _resolve_hf_file(quant, gguf_files)
+        if filename:
+            bare = f"{m.group('indent') or ''}{m.group('flag')} {repo_id}" if is_block \
+                else f"{m.group('flag')} {repo_id}"
+            new_cmd = new_cmd[: m.start()] + bare + new_cmd[m.end():]
+            insert = f"\n{indent}--hf-file {filename}" if is_block else f" --hf-file {filename}"
+            at = m.start() + len(bare)
+            new_cmd = new_cmd[:at] + insert + new_cmd[at:]
+            changes.append(f"pinned --hf-file {filename}")
+        else:
+            n = len([f for f in gguf_files if quant.lower() in f.lower()])
+            skipped = (
+                f"could not resolve quant '{quant}' to a downloaded file for {repo_id} "
+                f"({'no' if n == 0 else n} candidate{'s' if n != 1 else ''})"
+            )
+    elif quant and has_hf_file:
+        # redundant leftover tag next to an explicit --hf-file
+        new_cmd = new_cmd[: m.start()] + new_cmd[m.start():].replace(f":{quant}", "", 1)
+        changes.append(f"dropped redundant :{quant} from -hf")
+
+    if mmproj_files and not has_mmproj:
+        url = f"https://huggingface.co/{repo_id}/resolve/main/{mmproj_files[0]}"
+        if is_block:
+            new_cmd = new_cmd.rstrip("\n") + f"\n{indent}--mmproj-url {url}\n"
+        else:
+            new_cmd = f"{new_cmd.rstrip()} --mmproj-url {url}"
+        changes.append(f"pinned --mmproj-url {mmproj_files[0]}")
+
+    return new_cmd, changes, skipped
+
+
+def normalize_config_entries(
+    content: str, downloads: dict[str, dict[str, list[str]]]
+) -> tuple[str, list[dict]]:
+    """Rewrite every model entry's `cmd` to the unambiguous `-hf`/`--hf-file`
+    (+ pinned `--mmproj-url`) form, preserving all other flags, comments and
+    formatting. `downloads` maps repo_id -> {"gguf": [...], "mmproj": [...]}.
+    Returns (new_content, report); new_content == content when nothing changed."""
+    data = _RUAMEL_YAML.load(content)
+    models = (data or {}).get("models") or {}
+    report: list[dict] = []
+    changed = False
+
+    for model_id, cfg in models.items():
+        cmd = (cfg or {}).get("cmd")
+        if not cmd:
+            continue
+        ref = parse_cmd_model_ref(str(cmd))
+        if not ref or ref["kind"] != "hf":
+            continue
+        dl = downloads.get(ref["repo_id"], {"gguf": [], "mmproj": []})
+        new_cmd, changes, skipped = _normalize_cmd(
+            str(cmd), dl.get("gguf", []), dl.get("mmproj", [])
+        )
+        if changes:
+            models[model_id]["cmd"] = (
+                LiteralScalarString(new_cmd) if "\n" in new_cmd else new_cmd
+            )
+            changed = True
+        if changes or skipped:
+            entry: dict = {"model_id": model_id, "changes": changes}
+            if skipped:
+                entry["skipped"] = skipped
+            report.append(entry)
+
+    if not changed:
+        return content, report
+    out = io.StringIO()
+    _RUAMEL_YAML.dump(data, out)
+    return out.getvalue(), report
 
 
 _HISTORY_FILENAME = "config.yaml"

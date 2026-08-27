@@ -1,5 +1,5 @@
 import { Editor, useMonaco } from "@monaco-editor/react";
-import { History } from "lucide-react";
+import { History, Wand2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -53,6 +53,8 @@ export function ConfigPage() {
     saveError,
     setContent,
     save,
+    normalize,
+    normalizing,
     resolveConflictKeepMine,
     resolveConflictLoadLatest,
     loadRevisionIntoEditor,
@@ -94,6 +96,30 @@ export function ConfigPage() {
     if (saveError) toast.error(`Save failed: ${saveError}`);
   }, [saveError]);
 
+  const handleNormalize = async () => {
+    try {
+      const report = await normalize();
+      if (report.length === 0) {
+        toast.success("Config already normalized — nothing to fix.");
+        return;
+      }
+      const fixed = report.filter((r) => r.changes.length > 0);
+      const skipped = report.filter((r) => r.skipped);
+      toast.success(
+        `Normalized ${fixed.length} ${fixed.length === 1 ? "entry" : "entries"} — review the diff, then Save & Apply.`,
+      );
+      if (skipped.length > 0) {
+        toast.warning(
+          `${skipped.length} ${skipped.length === 1 ? "entry" : "entries"} skipped: ${skipped
+            .map((r) => r.skipped)
+            .join("; ")}`,
+        );
+      }
+    } catch (e) {
+      toast.error(`Normalize failed: ${e instanceof Error ? e.message : "unexpected error"}`);
+    }
+  };
+
   if (loading) return <div className="p-10 text-text-secondary">Loading config...</div>;
 
   const lastFailed = status.status?.startsWith("failed") ?? false;
@@ -126,6 +152,16 @@ export function ConfigPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant="outline"
+            className="border-surface/40"
+            onClick={handleNormalize}
+            disabled={isDirty || normalizing}
+            title="Rewrite legacy -hf repo:quant entries to -hf + --hf-file, and pin --mmproj-url where a projector is downloaded"
+          >
+            <Wand2 className="w-4 h-4" />
+            {normalizing ? "Normalizing…" : "Normalize"}
+          </Button>
           <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" className="relative border-surface/40">

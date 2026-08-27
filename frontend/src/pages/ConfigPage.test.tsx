@@ -75,4 +75,46 @@ describe("ConfigPage", () => {
     expect(screen.getByText(/revision history/i)).toBeInTheDocument();
     expect(screen.getByText(/aaa111/)).toBeInTheDocument();
   });
+
+  it("Normalize button rewrites the editor with the returned content", async () => {
+    vi.spyOn(api, "getConfig").mockResolvedValue({
+      content: "models:\n  m:\n    cmd: llama-server -hf org/repo-GGUF:model-Q4_K_M\n",
+      hash: "abc",
+    });
+    vi.spyOn(api, "getConfigStatus").mockResolvedValue({ status: null, timestamp: null });
+    vi.spyOn(api, "getConfigHistory").mockResolvedValue([]);
+    vi.spyOn(api, "getConfigSchema").mockResolvedValue({ title: "llama-swap configuration" });
+    const normalizeSpy = vi.spyOn(api, "normalizeConfig").mockResolvedValue({
+      content: "models:\n  m:\n    cmd: llama-server -hf org/repo-GGUF --hf-file model-Q4_K_M.gguf\n",
+      report: [{ model_id: "m", changes: ["pinned --hf-file model-Q4_K_M.gguf"], skipped: null }],
+    });
+
+    render(<ConfigPage />);
+    await waitFor(() => expect(screen.getByTestId("mock-editor")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /normalize/i }));
+
+    await waitFor(() => expect(normalizeSpy).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByTestId("mock-editor")).toHaveValue(
+        "models:\n  m:\n    cmd: llama-server -hf org/repo-GGUF --hf-file model-Q4_K_M.gguf\n",
+      ),
+    );
+    // editor now dirty -> Save & Apply enabled
+    expect(screen.getByRole("button", { name: /save & apply/i })).toBeEnabled();
+  });
+
+  it("Normalize button is disabled once the editor is dirty", async () => {
+    vi.spyOn(api, "getConfig").mockResolvedValue({ content: "models: {}\n", hash: "abc" });
+    vi.spyOn(api, "getConfigStatus").mockResolvedValue({ status: null, timestamp: null });
+    vi.spyOn(api, "getConfigHistory").mockResolvedValue([]);
+    vi.spyOn(api, "getConfigSchema").mockResolvedValue({ title: "llama-swap configuration" });
+
+    render(<ConfigPage />);
+    await waitFor(() => expect(screen.getByTestId("mock-editor")).toBeInTheDocument());
+
+    expect(screen.getByRole("button", { name: /normalize/i })).toBeEnabled();
+    await userEvent.type(screen.getByTestId("mock-editor"), "\n");
+    expect(screen.getByRole("button", { name: /normalize/i })).toBeDisabled();
+  });
 });

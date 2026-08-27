@@ -16,6 +16,7 @@ import {
   getSettings,
   getVramEstimate,
   listManagedModels,
+  normalizeConfig,
   searchModels,
   startDownload,
   updateSettings,
@@ -284,6 +285,25 @@ describe("getConfigFlags", () => {
   });
 });
 
+describe("normalizeConfig", () => {
+  it("POSTs to the normalize endpoint and returns content + report", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: "models: {}\n",
+        report: [{ model_id: "m", changes: ["pinned --hf-file x.gguf"], skipped: null }],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await normalizeConfig();
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/config/normalize", { method: "POST" });
+    expect(result.content).toBe("models: {}\n");
+    expect(result.report[0].changes).toEqual(["pinned --hf-file x.gguf"]);
+  });
+});
+
 describe("getSettings", () => {
   it("getSettings maps a GPU hardware profile from snake_case", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
@@ -397,6 +417,7 @@ describe("createConfigEntry", () => {
         reasoning: null,
         reasoning_budget: null,
         reasoning_budget_message: null,
+        mmproj_filename: null,
       }),
     });
     expect(result).toEqual({ status: "unverified", logs: null });
@@ -428,6 +449,7 @@ describe("createConfigEntry", () => {
         reasoning: null,
         reasoning_budget: null,
         reasoning_budget_message: null,
+        mmproj_filename: null,
       }),
     });
   });
@@ -457,6 +479,7 @@ describe("createConfigEntry", () => {
         reasoning: null,
         reasoning_budget: null,
         reasoning_budget_message: null,
+        mmproj_filename: null,
       }),
     });
   });
@@ -488,8 +511,25 @@ describe("createConfigEntry", () => {
         reasoning: "on",
         reasoning_budget: 2048,
         reasoning_budget_message: "Final Answer:",
+        mmproj_filename: null,
       }),
     });
+  });
+
+  it("posts mmproj_filename when given", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: "unverified", logs: null }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createConfigEntry("org/repo", "model-Q4_K_M.gguf", "my-model", {
+      mmprojFilename: "mmproj-model-f16.gguf",
+    });
+
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as { body: string }).body);
+    expect(body.mmproj_filename).toBe("mmproj-model-f16.gguf");
   });
 
   it("throws an error on 409 model-id collision", async () => {

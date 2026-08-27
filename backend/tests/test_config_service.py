@@ -12,6 +12,7 @@ from app.services.config import (
     list_revisions,
     model_ids_for_repo,
     model_refs,
+    normalize_config_entries,
     parse_cmd_model_ref,
     read_config,
     remove_models_for_repo,
@@ -351,7 +352,8 @@ def test_add_model_entry_emits_literal_block_style_for_multiline_cmd():
     # it requires LiteralScalarString wrapping in build_minimal_entry.
     assert "cmd: |" in new_content
     assert "llama-server" in new_content
-    assert "-hf org/repo:model-Q4_K_M" in new_content
+    assert "-hf org/repo" in new_content
+    assert "--hf-file model-Q4_K_M.gguf" in new_content
 
 
 def test_add_model_entry_does_not_line_wrap_long_cmd():
@@ -367,3 +369,135 @@ def test_add_model_entry_does_not_line_wrap_long_cmd():
     cmd_lines = [line for line in lines if "cmd:" in line]
     assert len(cmd_lines) == 1
     assert long_cmd in cmd_lines[0]
+
+
+# --- normalize_config_entries -------------------------------------------------
+
+_BLOCK_CONFIG = (
+    "models:\n"
+    "  kat:\n"
+    "    proxy: http://127.0.0.1:${PORT}\n"
+    "    cmd: |\n"
+    "      llama-server\n"
+    "      --port ${PORT}\n"
+    "      --fit on\n"
+    "      -hf gbuzhf/KAT-Coder-V2.5-Dev-MTP-GGUF:Kwaipilot_KAT-Coder-V2.5-Dev-MTP-APEX-I-Compact\n"
+)
+
+_DOWNLOADS = {
+    "gbuzhf/KAT-Coder-V2.5-Dev-MTP-GGUF": {
+        "gguf": [
+            "Kwaipilot_KAT-Coder-V2.5-Dev-MTP-APEX-I-Compact.gguf",
+            "Kwaipilot_KAT-Coder-V2.5-Dev-MTP-APEX-I-Compact-v2D-lite.gguf",
+        ],
+        "mmproj": [],
+    }
+}
+
+
+def test_normalize_splits_hf_colon_quant_into_exact_hf_file():
+    new_content, report = normalize_config_entries(_BLOCK_CONFIG, _DOWNLOADS)
+
+    assert "-hf gbuzhf/KAT-Coder-V2.5-Dev-MTP-GGUF\n" in new_content
+    assert (
+        "--hf-file Kwaipilot_KAT-Coder-V2.5-Dev-MTP-APEX-I-Compact.gguf\n" in new_content
+    )
+    # the ambiguous sibling was NOT chosen, and the colon form is gone
+    assert "APEX-I-Compact-v2D-lite" not in new_content
+    assert ":Kwaipilot" not in new_content
+    # other flags untouched
+    assert "--fit on\n" in new_content
+    assert report == [
+        {
+            "model_id": "kat",
+            "changes": [
+                "pinned --hf-file Kwaipilot_KAT-Coder-V2.5-Dev-MTP-APEX-I-Compact.gguf"
+            ],
+        }
+    ]
+
+
+def test_normalize_keeps_block_scalar_style_and_indentation():
+    new_content, _ = normalize_config_entries(_BLOCK_CONFIG, _DOWNLOADS)
+
+    assert "cmd: |\n" in new_content
+    assert "      --hf-file " in new_content  # same 6-space indent as sibling flags
+
+
+def test_normalize_is_idempotent():
+    once, _ = normalize_config_entries(_BLOCK_CONFIG, _DOWNLOADS)
+    twice, report = normalize_config_entries(once, _DOWNLOADS)
+
+    assert twice == once
+    assert report == []
+
+
+def test_normalize_adds_mmproj_url_when_projector_downloaded_and_unpinned():
+    downloads = {
+        "org/vision-GGUF": {"gguf": ["vision-Q4_K_M.gguf"], "mmproj": ["mmproj-vision-f16.gguf"]}
+    }
+    content = (
+        "models:\n"
+        "  v:\n"
+        "    cmd: |\n"
+        "      llama-server\n"
+        "      -hf org/vision-GGUF\n"
+        "      --hf-file vision-Q4_K_M.gguf\n"
+    )
+    new_content, report = normalize_config_entries(content, downloads)
+
+    assert (
+        "--mmproj-url https://huggingface.co/org/vision-GGUF/resolve/main/mmproj-vision-f16.gguf\n"
+        in new_content
+    )
+    assert report == [{"model_id": "v", "changes": ["pinned --mmproj-url mmproj-vision-f16.gguf"]}]
+
+
+def test_normalize_does_not_touch_entry_that_already_pins_mmproj():
+    downloads = {"org/v": {"gguf": ["v.gguf"], "mmproj": ["mmproj-a.gguf", "mmproj-b.gguf"]}}
+    content = (
+        "models:\n"
+        "  v:\n"
+        "    cmd: |\n"
+        "      llama-server\n"
+        "      -hf org/v\n"
+        "      --hf-file v.gguf\n"
+        "      --mmproj-url https://huggingface.co/org/v/resolve/main/mmproj-b.gguf\n"
+    )
+    new_content, report = normalize_config_entries(content, downloads)
+
+    assert new_content == content
+    assert report == []
+
+
+def test_normalize_reports_and_skips_when_quant_unresolvable():
+    content = (
+        "models:\n"
+        "  gone:\n"
+        "    cmd: llama-server -hf org/deleted-GGUF:some-old-Q4_K_M\n"
+    )
+    new_content, report = normalize_config_entries(content, {})
+
+    assert new_content == content
+    assert report[0]["model_id"] == "gone"
+    assert report[0]["changes"] == []
+    assert "could not resolve" in report[0]["skipped"]
+
+
+def test_normalize_handles_single_line_cmd():
+    downloads = {"org/repo-GGUF": {"gguf": ["model-Q4_K_M.gguf"], "mmproj": []}}
+    content = (
+        "models:\n  m:\n"
+        "    cmd: llama-server --port ${PORT} -hf org/repo-GGUF:model-Q4_K_M --jinja\n"
+    )
+    new_content, _ = normalize_config_entries(content, downloads)
+
+    assert "-hf org/repo-GGUF --hf-file model-Q4_K_M.gguf --jinja" in new_content
+
+
+def test_normalize_leaves_local_path_entries_alone():
+    content = "models:\n  m:\n    cmd: llama-server -m /models/foo.gguf\n"
+    new_content, report = normalize_config_entries(content, {})
+
+    assert new_content == content
+    assert report == []
