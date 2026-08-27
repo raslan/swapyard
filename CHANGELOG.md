@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/raslan/swapyard/compare/v1.5.0...v1.6.0) (2026-08-27)
+
+
+### Features
+
+* add more robust file deletion ([621daed](https://github.com/raslan/swapyard/commit/621daed01af01be3a53fb89099e330c75b63800d))
+
 ## [1.5.0](https://github.com/raslan/swapyard/compare/v1.4.1...v1.5.0) (2026-08-27)
 
 
