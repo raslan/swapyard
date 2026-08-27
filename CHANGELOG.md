@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.5.0](https://github.com/raslan/swapyard/compare/v1.4.1...v1.5.0) (2026-08-27)
+
+
+### Features
+
+* add exact file matching and config fixer for gguf and vision projectors ([52a4d66](https://github.com/raslan/swapyard/commit/52a4d66f4455a573aa71c57bea314c20a8e56db6))
+* add landing page accessibility pass and Vercel config ([35a87bd](https://github.com/raslan/swapyard/commit/35a87bd4a31eb40cddac52224da906ff740e1124))
+* add landing page copy, anchor icon, reduced-motion hook ([7155c74](https://github.com/raslan/swapyard/commit/7155c74651aa5a470cae4cc3db28afdb1e882f51))
+* add landing page feature video sections ([6968cbc](https://github.com/raslan/swapyard/commit/6968cbcdb4a452a60ce2b74b5f55aced9fcc2ca7))
+* add landing page header, footer, gutter, section label ([34395e9](https://github.com/raslan/swapyard/commit/34395e958dd06ce2192a248050f3d8b33851d6b7))
+* add landing page hero and fit bar signature animation ([3d2605c](https://github.com/raslan/swapyard/commit/3d2605c57115e41488696cbf83f42741788a81e3))
+* add landing page safety, manage, and tech facts sections ([180fcb9](https://github.com/raslan/swapyard/commit/180fcb9a3a2a3db92851c3b7b48cf6f05fa5cee5))
+* add landing page video and favicon assets ([32fc7e1](https://github.com/raslan/swapyard/commit/32fc7e18e5d7a01990908b6d787d4d3b0ae5262c))
+* full artistic redesign of landing page with WebGL scenes ([015468f](https://github.com/raslan/swapyard/commit/015468f74b1a710f4367ed5a870c4f2ce03c8b96))
+* real visual pass on landing page ([bbda24c](https://github.com/raslan/swapyard/commit/bbda24c2fcb1e63d15ce0ba2460880291ebbf8fe))
+* scaffold landing page project ([3acf563](https://github.com/raslan/swapyard/commit/3acf563ceffaf7a8086898af264079b7e1c4d332))
+
+
+### Bug Fixes
+
+* address whole-branch review findings on landing page ([c06ee5d](https://github.com/raslan/swapyard/commit/c06ee5dcdab7ae6f8fbc3b210530dc07c561954f))
+* bounded hero on ultrawide, lighter background, fit-bar pacing ([a472dae](https://github.com/raslan/swapyard/commit/a472dae08174ff0139de4623358a6246055fcfcc))
+* correct fit bar capacity fill and anchor pop animation ([2817c56](https://github.com/raslan/swapyard/commit/2817c56f0957e9c3b3435868ea4a1de7a3a5e868))
+* exclude tsbuildinfo from git tracking ([66f241d](https://github.com/raslan/swapyard/commit/66f241d16ee89c2c73e35fa54f595137a2de8b96))
+* fit-check section no longer full-screen for a small strip ([759174f](https://github.com/raslan/swapyard/commit/759174f443345709f69506251a5c14f6d9b81850))
+* hero alignment, wireframe scenes as backgrounds, drop facts/compose ([1226bb5](https://github.com/raslan/swapyard/commit/1226bb5795f58516ea752b8c99c5cf1f4c7d649d))
+* keep figcaption a direct child of figure ([d189785](https://github.com/raslan/swapyard/commit/d189785b5575b72c75ec02656c2ef9ca216093d8))
+
 ## [1.4.1](https://github.com/raslan/swapyard/compare/v1.4.0...v1.4.1) (2026-08-07)
 
 
