@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { CreateConfigEntryDialog } from "@/components/CreateConfigEntryDialog";
+import { ManagedFilesDialog } from "@/components/ManagedFilesDialog";
 import { CountIcon, SizeIcon, Stat } from "@/components/SpecStat";
 import { formatEta, formatSize, formatSpeed, formatQuantLabel, formatRelativeTime } from "@/lib/format";
 import type { DownloadState } from "@/types/download";
@@ -110,7 +111,21 @@ export function ManageRow({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-5 rounded bg-black/40 border border-surface/40 pr-3 py-1.5">
           <Stat label="Size" value={formatSize(model.sizeOnDisk)} icon={SizeIcon} />
-          <Stat label="Files" value={String(model.nbFiles)} icon={CountIcon} />
+          <ManagedFilesDialog model={model} onDeleteFile={onDeleteFile}>
+            <button
+              type="button"
+              title="View downloaded files"
+              className="inline-flex items-center gap-1.5 hover:text-text-primary transition-colors"
+            >
+              <CountIcon className="w-3 h-3 text-text-muted" />
+              <span className="text-[9px] uppercase tracking-wider text-text-muted font-medium">
+                Files
+              </span>
+              <span className="font-mono text-[11px] text-text-secondary underline decoration-dotted underline-offset-2">
+                {model.nbFiles}
+              </span>
+            </button>
+          </ManagedFilesDialog>
           <Stat label="Updated" value={formatRelativeTime(model.lastModified)} icon={Clock} />
         </div>
         {model.ggufFiles.length > 0 && (

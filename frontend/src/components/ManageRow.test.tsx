@@ -82,6 +82,21 @@ describe("ManageRow", () => {
     expect(onDeleteFile).toHaveBeenCalledTimes(1);
   });
 
+  it("opens the downloaded-files dialog from the Files stat", async () => {
+    const user = userEvent.setup();
+    renderRow({
+      ...baseModel,
+      nbFiles: 3,
+      ggufFiles: ["org-model.Q4_K_M.gguf"],
+      mmprojFiles: ["mmproj-org-model-bf16.gguf"],
+    });
+
+    await user.click(screen.getByRole("button", { name: /^files\s*3$/i }));
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("mmproj-org-model-bf16.gguf")).toBeInTheDocument();
+  });
+
   it("does not delete when the per-quant confirmation is cancelled", async () => {
     const onDeleteFile = vi.fn();
     const user = userEvent.setup();
