@@ -18,7 +18,7 @@ import type { DownloadState } from "@/types/download";
 
 export function ManagePage() {
   const { models, sort, setSort, remove, removeFile, refetch } = useManagedModels();
-  const { downloads, cancel, dismiss } = useDownloads();
+  const { downloads, cancel, dismiss, retry } = useDownloads();
   const navigate = useNavigate();
   const location = useLocation();
   // Only set when we landed here via a download start (BrowseDetailPage passes
@@ -121,7 +121,11 @@ export function ManagePage() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               >
-                <FailedDownloadRow download={d} onDismiss={() => dismiss(d.id)} />
+                <FailedDownloadRow
+                  download={d}
+                  onDismiss={() => dismiss(d.id)}
+                  onRetry={() => retry(d)}
+                />
               </motion.div>
             ))}
             {models.map((m) => (

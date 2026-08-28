@@ -41,7 +41,7 @@ def test_cancel_unknown_download_returns_404():
     assert resp.status_code == 404
 
 
-def test_cancel_already_finished_download_returns_404():
+def test_delete_finished_download_removes_the_record():
     # Uses a context-managed TestClient so the ASGI portal's event loop (and
     # thus the background download task scheduled on it) stays alive across
     # both requests below, instead of being torn down after each call.
@@ -59,6 +59,13 @@ def test_cancel_already_finished_download_returns_404():
                 time.sleep(0.02)
             assert state.status == "complete"
 
+            # A finished download can be dismissed - it's cleared, not 404'd,
+            # so it stops coming back on the next GET /api/downloads.
+            resp = scoped_client.delete(f"/api/downloads/{download_id}")
+            assert resp.status_code == 204
+            assert scoped_client.get("/api/downloads").json() == []
+
+            # Second delete of the now-gone record does 404.
             resp = scoped_client.delete(f"/api/downloads/{download_id}")
             assert resp.status_code == 404
 

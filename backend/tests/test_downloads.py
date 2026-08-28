@@ -5,7 +5,13 @@ from unittest.mock import patch
 import pytest
 
 from app.services import downloads as downloads_module
-from app.services.downloads import cancel_download, get_download, list_downloads, start_download
+from app.services.downloads import (
+    cancel_download,
+    get_download,
+    list_downloads,
+    remove_download,
+    start_download,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -107,3 +113,20 @@ async def test_cancel_completed_download_returns_false():
         await state.task
         assert state.status == "complete"
         assert cancel_download(state.id) is False
+
+
+def test_remove_unknown_download_returns_false():
+    assert remove_download("does-not-exist") is False
+
+
+async def test_remove_errored_download_drops_the_record():
+    def denied(*, repo_id, filename, tqdm_class, **kwargs):
+        raise PermissionError(13, "Permission denied", "/cache/hub/org--model")
+
+    with patch("app.services.downloads.hf_hub_download", side_effect=denied):
+        state = await start_download("org/model", "model.gguf")
+        await state.task
+        assert state.status == "error"
+        assert remove_download(state.id) is True
+        assert get_download(state.id) is None
+        assert state not in list_downloads()

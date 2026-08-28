@@ -65,9 +65,21 @@ export function useDownloads() {
     await apiCancelDownload(id);
   }, []);
 
-  const dismiss = useCallback((id: string) => {
+  const dismiss = useCallback(async (id: string) => {
+    // Drop it server-side too - otherwise GET /api/downloads keeps returning
+    // the errored/cancelled record and it comes back on the next refresh.
+    // Ignore a 404: the record may already be gone.
+    await apiCancelDownload(id).catch(() => {});
     setDownloads((prev) => prev.filter((d) => d.id !== id));
   }, []);
 
-  return { downloads, start, cancel, dismiss };
+  const retry = useCallback(
+    async (d: DownloadState) => {
+      await dismiss(d.id);
+      await start(d.repoId, d.filename, d.isXet);
+    },
+    [dismiss, start],
+  );
+
+  return { downloads, start, cancel, dismiss, retry };
 }

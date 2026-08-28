@@ -1,4 +1,4 @@
-import { AlertCircle, Clock, ExternalLink, Trash2, X, Zap } from "lucide-react";
+import { AlertCircle, Clock, ExternalLink, RotateCcw, Trash2, X, Zap } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -179,9 +179,11 @@ export function ManageRow({
 export function FailedDownloadRow({
   download,
   onDismiss,
+  onRetry,
 }: {
   download: DownloadState;
   onDismiss: () => void;
+  onRetry: () => void;
 }) {
   return (
     <div className="manage-row p-4 flex items-center justify-between gap-3 border-danger/40">
@@ -195,10 +197,16 @@ export function FailedDownloadRow({
           </p>
         </div>
       </div>
-      <Button variant="ghost" size="sm" onClick={onDismiss} className="shrink-0">
-        <X className="w-4 h-4" />
-        Dismiss
-      </Button>
+      <div className="flex items-center gap-1 shrink-0">
+        <Button variant="ghost" size="sm" onClick={onRetry}>
+          <RotateCcw className="w-4 h-4" />
+          Retry
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onDismiss}>
+          <X className="w-4 h-4" />
+          Dismiss
+        </Button>
+      </div>
     </div>
   );
 }

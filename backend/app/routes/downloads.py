@@ -7,9 +7,9 @@ from app.errors import NotFoundError
 from app.schemas import DownloadStateResponse, StartDownloadRequest
 from app.services.downloads import (
     DownloadState,
-    cancel_download,
     get_download,
     list_downloads,
+    remove_download,
     start_download,
     wait_for_update,
 )
@@ -70,5 +70,7 @@ async def stream_download_events(
 
 @router.delete("/{download_id}", status_code=204)
 async def delete_download(download_id: str) -> None:
-    if not cancel_download(download_id):
+    # Cancels an in-progress download and clears its record; also used to
+    # dismiss a finished/errored row so it stops reappearing on refresh.
+    if not remove_download(download_id):
         raise NotFoundError(f"download '{download_id}' not found")

@@ -83,6 +83,22 @@ def cancel_download(download_id: str) -> bool:
     return state.task.cancel()
 
 
+def remove_download(download_id: str) -> bool:
+    """Cancel the task if still running, then drop the record entirely.
+
+    Unlike cancel_download this also works for finished/errored/cancelled
+    downloads, so the UI can clear a stuck error row instead of it coming
+    back on every page refresh (the record otherwise lives forever in
+    _downloads and GET /api/downloads keeps returning it).
+    """
+    state = _downloads.pop(download_id, None)
+    if state is None:
+        return False
+    if state.task is not None and not state.task.done():
+        state.task.cancel()
+    return True
+
+
 def list_downloads() -> list[DownloadState]:
     return list(_downloads.values())
 
@@ -92,7 +108,9 @@ def get_download(download_id: str) -> DownloadState | None:
 
 
 async def wait_for_update(download_id: str, timeout: float = 1.0) -> None:
-    state = _downloads[download_id]
+    state = _downloads.get(download_id)
+    if state is None:  # removed mid-stream (e.g. cancelled from another request)
+        return
     state._event.clear()
     try:
         await asyncio.wait_for(state._event.wait(), timeout=timeout)
