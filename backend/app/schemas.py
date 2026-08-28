@@ -21,6 +21,7 @@ class ManagedModelResponse(BaseModel):
     last_modified: float
     gguf_files: list[str]
     mmproj_files: list[str] = []
+    file_sizes: dict[str, int] = {}
     config_entries: list[str] = []
 
 

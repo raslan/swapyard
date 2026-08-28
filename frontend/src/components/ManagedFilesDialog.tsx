@@ -19,9 +19,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { formatSize } from "@/lib/format";
 import type { ManagedModel } from "@/types/model";
-
-type FileRow = { name: string; kind: "weights" | "mmproj" };
 
 export function ManagedFilesDialog({
   model,
@@ -34,10 +33,7 @@ export function ManagedFilesDialog({
 }) {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
-  const files: FileRow[] = [
-    ...model.ggufFiles.map((name) => ({ name, kind: "weights" as const })),
-    ...model.mmprojFiles.map((name) => ({ name, kind: "mmproj" as const })),
-  ];
+  const files = [...model.ggufFiles, ...model.mmprojFiles];
 
   return (
     <Dialog>
@@ -46,27 +42,27 @@ export function ManagedFilesDialog({
         <DialogHeader>
           <DialogTitle>Downloaded files</DialogTitle>
           <DialogDescription>
-            <span className="font-mono">{model.repoId}</span> — weight and projector files. Config
-            and tokenizer files aren't listed.
+            <span className="font-mono break-all">{model.repoId}</span> — weight and projector
+            files. Config and tokenizer files aren't listed.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-1.5">
-          {files.map((file) => (
+        <div className="space-y-1.5 max-h-[60vh] overflow-y-auto">
+          {files.map((name) => (
             <div
-              key={file.name}
-              className="flex items-center justify-between gap-3 rounded border border-surface/40 bg-black/30 px-3 py-2"
+              key={name}
+              className="flex items-start justify-between gap-3 rounded border border-surface/40 bg-black/30 px-3 py-2"
             >
-              <span className="font-mono text-xs truncate" title={file.name}>
-                {file.name}
-              </span>
+              <span className="min-w-0 flex-1 font-mono text-xs break-all">{name}</span>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="badge badge-quant text-[10px]">{file.kind}</span>
+                <span className="font-mono text-[11px] text-text-muted tabular-nums">
+                  {model.fileSizes[name] != null ? formatSize(model.fileSizes[name]) : "—"}
+                </span>
                 <button
                   type="button"
-                  aria-label={`Delete ${file.name}`}
+                  aria-label={`Delete ${name}`}
                   className="text-text-muted hover:text-danger"
-                  onClick={() => setPendingDelete(file.name)}
+                  onClick={() => setPendingDelete(name)}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

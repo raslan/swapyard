@@ -13,6 +13,11 @@ const model: ManagedModel = {
   lastModified: 0,
   ggufFiles: ["vision-Q4_K_M.gguf", "vision-Q8_0.gguf"],
   mmprojFiles: ["mmproj-vision-bf16.gguf"],
+  fileSizes: {
+    "vision-Q4_K_M.gguf": 1024 ** 3 * 4,
+    "vision-Q8_0.gguf": 1024 ** 3 * 8,
+    "mmproj-vision-bf16.gguf": 1024 ** 2 * 600,
+  },
   configEntries: [],
 };
 
@@ -26,15 +31,27 @@ function renderDialog(onDeleteFile = vi.fn()) {
 }
 
 describe("ManagedFilesDialog", () => {
-  it("lists every weight and projector file with its kind", async () => {
+  it("lists every weight and projector file with its size", async () => {
     renderDialog();
     await userEvent.click(screen.getByRole("button", { name: "Files" }));
 
     expect(screen.getByText("vision-Q4_K_M.gguf")).toBeInTheDocument();
     expect(screen.getByText("vision-Q8_0.gguf")).toBeInTheDocument();
     expect(screen.getByText("mmproj-vision-bf16.gguf")).toBeInTheDocument();
-    expect(screen.getAllByText("weights")).toHaveLength(2);
-    expect(screen.getByText("mmproj")).toBeInTheDocument();
+    expect(screen.getByText("4.0 GB")).toBeInTheDocument();
+    expect(screen.getByText("8.0 GB")).toBeInTheDocument();
+    expect(screen.getByText("600.0 MB")).toBeInTheDocument();
+  });
+
+  it("shows a dash when a file's size is unknown", async () => {
+    render(
+      <ManagedFilesDialog model={{ ...model, fileSizes: {} }} onDeleteFile={vi.fn()}>
+        <button type="button">Files</button>
+      </ManagedFilesDialog>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Files" }));
+
+    expect(screen.getAllByText("—")).toHaveLength(3);
   });
 
   it("deletes a single file after confirming", async () => {

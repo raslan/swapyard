@@ -33,6 +33,7 @@ describe("ManagePage", () => {
         lastModified: 1,
         ggufFiles: [],
         mmprojFiles: [],
+        fileSizes: {},
         configEntries: [],
       },
     ]);
@@ -68,6 +69,7 @@ describe("ManagePage", () => {
         lastModified: 1,
         ggufFiles: [],
         mmprojFiles: [],
+        fileSizes: {},
         configEntries: ["my-model", "my-model-nothink"],
       },
     ]);
@@ -101,6 +103,7 @@ describe("ManagePage", () => {
         lastModified: 1,
         ggufFiles: [],
         mmprojFiles: [],
+        fileSizes: {},
         configEntries: [],
       },
     ]);
@@ -133,6 +136,7 @@ describe("ManagePage", () => {
         lastModified: 1,
         ggufFiles: [],
         mmprojFiles: [],
+        fileSizes: {},
         configEntries: [],
       },
     ]);
@@ -162,6 +166,7 @@ describe("ManagePage", () => {
         lastModified: 1,
         ggufFiles: ["org-model.Q4_K_M.gguf", "org-model.Q8_0.gguf"],
         mmprojFiles: [],
+        fileSizes: {},
         configEntries: [],
       },
     ]);
@@ -245,6 +250,7 @@ describe("ManagePage", () => {
           lastModified: 1,
           ggufFiles: [],
           mmprojFiles: [],
+          fileSizes: {},
           configEntries: [],
         },
       ]);

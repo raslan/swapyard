@@ -6,7 +6,7 @@ from huggingface_hub import snapshot_download
 
 from app.errors import NotFoundError
 from app.services.manage import (
-    _cached_gguf_files,
+    _cached_gguf_sizes,
     _gguf_files,
     _mmproj_files,
     delete_managed_model,
@@ -86,15 +86,27 @@ def test_gguf_files_excludes_mmproj_and_mmproj_files_only_mmproj():
         revisions=[
             SimpleNamespace(
                 files=[
-                    SimpleNamespace(file_name="qwen3.5-0.8b-Q4_K_M.gguf"),
-                    SimpleNamespace(file_name="mmproj-qwen3.5-0.8b-f16.gguf"),
+                    SimpleNamespace(file_name="qwen3.5-0.8b-Q4_K_M.gguf", size_on_disk=100),
+                    SimpleNamespace(file_name="mmproj-qwen3.5-0.8b-f16.gguf", size_on_disk=20),
+                    SimpleNamespace(file_name="config.json", size_on_disk=1),
                 ]
             )
         ]
     )
-    names = _cached_gguf_files(repo)
-    assert _gguf_files(names) == ["qwen3.5-0.8b-Q4_K_M.gguf"]
-    assert _mmproj_files(names) == ["mmproj-qwen3.5-0.8b-f16.gguf"]
+    sizes = _cached_gguf_sizes(repo)
+    assert sizes == {"qwen3.5-0.8b-Q4_K_M.gguf": 100, "mmproj-qwen3.5-0.8b-f16.gguf": 20}
+    assert _gguf_files(sizes) == ["qwen3.5-0.8b-Q4_K_M.gguf"]
+    assert _mmproj_files(sizes) == ["mmproj-qwen3.5-0.8b-f16.gguf"]
+
+
+def test_cached_gguf_sizes_dedupes_across_revisions_taking_largest():
+    repo = SimpleNamespace(
+        revisions=[
+            SimpleNamespace(files=[SimpleNamespace(file_name="m-Q4_K_M.gguf", size_on_disk=50)]),
+            SimpleNamespace(files=[SimpleNamespace(file_name="m-Q4_K_M.gguf", size_on_disk=80)]),
+        ]
+    )
+    assert _cached_gguf_sizes(repo) == {"m-Q4_K_M.gguf": 80}
 
 
 @pytest.fixture

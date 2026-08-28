@@ -103,6 +103,7 @@ export async function listManagedModels(sort: "size" | "name"): Promise<ManagedM
       last_modified: number;
       gguf_files: string[];
       mmproj_files: string[];
+      file_sizes: Record<string, number>;
       config_entries: string[];
     }[]
   >(`/api/manage/models?sort=${sort}`);
@@ -113,6 +114,7 @@ export async function listManagedModels(sort: "size" | "name"): Promise<ManagedM
     lastModified: m.last_modified,
     ggufFiles: m.gguf_files,
     mmprojFiles: m.mmproj_files,
+    fileSizes: m.file_sizes ?? {},
     configEntries: m.config_entries,
   }));
 }

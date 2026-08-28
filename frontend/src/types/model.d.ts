@@ -43,5 +43,6 @@ export interface ManagedModel {
   lastModified: number;
   ggufFiles: string[];
   mmprojFiles: string[];
+  fileSizes: Record<string, number>;
   configEntries: string[];
 }

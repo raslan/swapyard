@@ -167,6 +167,7 @@ describe("BrowseDetailPage", () => {
         lastModified: 1,
         ggufFiles: ["model.Q4.gguf"],
         mmprojFiles: [],
+        fileSizes: {},
         configEntries: [],
       },
     ]);

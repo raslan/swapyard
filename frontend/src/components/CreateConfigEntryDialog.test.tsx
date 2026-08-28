@@ -34,6 +34,7 @@ const baseModel: ManagedModel = {
   lastModified: 0,
   ggufFiles: ["org-model.Q4_K_M.gguf"],
   mmprojFiles: [],
+  fileSizes: {},
   configEntries: [],
 };
 
@@ -85,6 +86,7 @@ describe("CreateConfigEntryDialog", () => {
       ...baseModel,
       ggufFiles: ["model-Q4_K_M.gguf"],
       mmprojFiles: ["mmproj-model-f16.gguf"],
+      fileSizes: {},
     });
 
     await openDialog();

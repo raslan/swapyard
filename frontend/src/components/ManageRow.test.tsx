@@ -34,6 +34,7 @@ const baseModel: ManagedModel = {
   lastModified: 0,
   ggufFiles: ["org-model.Q4_K_M.gguf"],
   mmprojFiles: [],
+  fileSizes: {},
   configEntries: [],
 };
 
@@ -89,6 +90,7 @@ describe("ManageRow", () => {
       nbFiles: 3,
       ggufFiles: ["org-model.Q4_K_M.gguf"],
       mmprojFiles: ["mmproj-org-model-bf16.gguf"],
+      fileSizes: {},
     });
 
     await user.click(screen.getByRole("button", { name: /^files\s*3$/i }));

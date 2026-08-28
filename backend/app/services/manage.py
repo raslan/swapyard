@@ -14,18 +14,22 @@ class ManagedModel:
     last_modified: float
     gguf_files: list[str]
     mmproj_files: list[str]
+    file_sizes: dict[str, int]
 
 
-def _cached_gguf_files(repo) -> set[str]:  # noqa: ANN001 - CachedRepoInfo has no public type alias
-    return {
-        file.file_name
-        for revision in repo.revisions
-        for file in revision.files
-        if file.file_name.endswith(".gguf")
-    }
+def _cached_gguf_sizes(repo) -> dict[str, int]:  # noqa: ANN001 - CachedRepoInfo has no public type alias
+    """Map each cached `.gguf` file name to its on-disk size. Deduped by name
+    (a file can appear in several revisions sharing one blob); the largest seen
+    size wins, which matches what the badge/dialog should report."""
+    sizes: dict[str, int] = {}
+    for revision in repo.revisions:
+        for file in revision.files:
+            if file.file_name.endswith(".gguf"):
+                sizes[file.file_name] = max(sizes.get(file.file_name, 0), file.size_on_disk)
+    return sizes
 
 
-def _gguf_files(names: set[str]) -> list[str]:
+def _gguf_files(names) -> list[str]:  # noqa: ANN001 - any iterable of file names
     """Dedupe, sorted, non-mmproj .gguf filenames (same "mmproj" in lower() substring
     check services/browse.py's _categorize_file uses) - llama-server's `-hf` already
     auto-downloads/attaches a repo's mmproj file on its own (confirmed against real
@@ -36,7 +40,7 @@ def _gguf_files(names: set[str]) -> list[str]:
     return sorted(n for n in names if "mmproj" not in n.lower())
 
 
-def _mmproj_files(names: set[str]) -> list[str]:
+def _mmproj_files(names) -> list[str]:  # noqa: ANN001 - any iterable of file names
     """Dedupe, sorted mmproj filenames - tracked separately from gguf_files above so
     the frontend can tell an already-downloaded mmproj apart from one still worth
     offering, without it polluting the config-entry file picker."""
@@ -52,15 +56,16 @@ def list_managed_models(sort: str = "size", cache_dir: str | None = None) -> lis
     for repo in cache_info.repos:
         if repo.repo_type != "model":
             continue
-        names = _cached_gguf_files(repo)
+        sizes = _cached_gguf_sizes(repo)
         models.append(
             ManagedModel(
                 repo_id=repo.repo_id,
                 size_on_disk=repo.size_on_disk,
                 nb_files=repo.nb_files,
                 last_modified=repo.last_modified,
-                gguf_files=_gguf_files(names),
-                mmproj_files=_mmproj_files(names),
+                gguf_files=_gguf_files(sizes),
+                mmproj_files=_mmproj_files(sizes),
+                file_sizes=sizes,
             )
         )
     if sort == "name":
