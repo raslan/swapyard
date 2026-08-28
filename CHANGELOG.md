@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0](https://github.com/raslan/swapyard/compare/v1.6.0...v1.7.0) (2026-08-28)
+
+
+### Features
+
+* add more robust failed download handling and dismissal ([7581667](https://github.com/raslan/swapyard/commit/758166794747281ccaeea4c7b0a859e97e91e940))
+* add new more robust file management ([ad9f063](https://github.com/raslan/swapyard/commit/ad9f0631820fac390f3070358e3fe40d9c34d60f))
+
 ## [1.6.0](https://github.com/raslan/swapyard/compare/v1.5.0...v1.6.0) (2026-08-27)
 
 
