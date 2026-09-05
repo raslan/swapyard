@@ -89,3 +89,59 @@ def test_openclaw_render_shape():
     plain_entry = provider["models"]["plain-model"]
     assert "contextWindow" not in plain_entry
     assert plain_entry["vision"] is False
+
+
+from app.harnesses import hermes_agent, qwen_code
+
+
+def test_qwen_code_render_shape():
+    data = json.loads(qwen_code.HARNESS.render(MODELS, BASE_URL))
+    provider = data["modelProviders"]["openai"][0]
+    assert provider["baseUrl"] == BASE_URL
+    assert provider["apiKey"] == "sk-local"
+
+    vision_entry = next(m for m in provider["models"] if m["id"] == "vision-model")
+    gen = vision_entry["generationConfig"]
+    assert gen["contextWindowSize"] == 8192
+    assert gen["modalities"]["image"] is True
+    assert gen["reasoning"]["effort"] == "medium"
+
+    plain_entry = next(m for m in provider["models"] if m["id"] == "plain-model")
+    gen = plain_entry["generationConfig"]
+    assert "contextWindowSize" not in gen
+    assert gen["modalities"]["image"] is False
+    assert gen["reasoning"]["effort"] == "none"
+
+
+def test_hermes_agent_render_shape():
+    data = _yaml.safe_load(hermes_agent.HARNESS.render(MODELS, BASE_URL))
+    provider = data["providers"]["swapyard"]
+    assert provider["base_url"] == BASE_URL
+    assert provider["api_key"] == "sk-local"
+
+    vision_entry = provider["models"]["vision-model"]
+    assert vision_entry["context_length"] == 8192
+    assert vision_entry["capabilities"] == {"vision": True, "reasoning": True}
+
+    plain_entry = provider["models"]["plain-model"]
+    assert "context_length" not in plain_entry
+    assert plain_entry["capabilities"] == {"vision": False, "reasoning": False}
+
+
+def test_all_seven_harnesses_registered_in_display_order():
+    from app.harnesses import HARNESSES
+
+    assert [h.id for h in HARNESSES] == [
+        "opencode", "kilo", "pi", "oh-my-pi", "openclaw", "qwen-code", "hermes-agent",
+    ]
+
+
+def test_every_harness_renders_valid_output_for_empty_model_list():
+    from app.harnesses import HARNESSES
+
+    for h in HARNESSES:
+        rendered = h.render([], BASE_URL)
+        if h.format == "yaml":
+            _yaml.safe_load(rendered)
+        else:
+            json.loads(rendered)
