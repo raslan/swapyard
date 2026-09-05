@@ -7,6 +7,15 @@ import { ConnectPage } from "@/pages/ConnectPage";
 
 vi.mock("@/lib/api");
 
+const toastError = vi.fn();
+vi.mock("sonner", () => ({
+  toast: {
+    error: (...args: unknown[]) => toastError(...args),
+    success: vi.fn(),
+    warning: vi.fn(),
+  },
+}));
+
 const HARNESSES = [
   { id: "opencode", name: "opencode", configPath: "~/.config/opencode/opencode.json", format: "json" as const, docsUrl: "https://opencode.ai", icon: null },
   { id: "kilo", name: "Kilo Code", configPath: "kilo.jsonc", format: "jsonc" as const, docsUrl: "https://kilocode.ai", icon: null },
@@ -28,6 +37,7 @@ function detailFor(id: string) {
 
 describe("ConnectPage", () => {
   beforeEach(() => {
+    toastError.mockClear();
     vi.mocked(api.getHarnesses).mockResolvedValue(HARNESSES);
     vi.mocked(api.getHarness).mockImplementation((id: string) => Promise.resolve(detailFor(id)));
   });
@@ -47,5 +57,15 @@ describe("ConnectPage", () => {
     await userEvent.click(screen.getByTestId("harness-rail-item-kilo"));
 
     await waitFor(() => expect(api.getHarness).toHaveBeenCalledWith("kilo"));
+  });
+
+  it("leaves the loading state and shows a toast when getHarnesses rejects", async () => {
+    vi.mocked(api.getHarnesses).mockRejectedValue(new Error("backend down"));
+    render(<ConnectPage />);
+
+    await waitFor(() =>
+      expect(screen.queryByText("Loading harnesses...")).not.toBeInTheDocument(),
+    );
+    expect(toastError).toHaveBeenCalled();
   });
 });

@@ -75,6 +75,10 @@ def test_ohmypi_render_is_yaml_twin_of_pi_shape():
     assert yaml_data == pi_data
 
 
+def test_openclaw_config_path_is_a_real_basename():
+    assert openclaw.HARNESS.config_path == "openclaw.json"
+
+
 def test_openclaw_render_shape():
     data = json.loads(openclaw.HARNESS.render(MODELS, BASE_URL))
     provider = data["models"]["providers"]["swapyard"]

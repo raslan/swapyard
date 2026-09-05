@@ -14,17 +14,30 @@ export function ConnectPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getHarnesses().then((list) => {
-      setHarnesses(list);
-      setLoading(false);
-      if (list.length > 0) setSelectedId(list[0].id);
-    });
+    getHarnesses()
+      .then((list) => {
+        setHarnesses(list);
+        setLoading(false);
+        if (list.length > 0) setSelectedId(list[0].id);
+      })
+      .catch((e) => {
+        setLoading(false);
+        toast.error(
+          `Failed to load harnesses: ${e instanceof Error ? e.message : "unexpected error"}`,
+        );
+      });
   }, []);
 
   useEffect(() => {
     if (!selectedId) return;
     setDetail(null);
-    getHarness(selectedId).then(setDetail);
+    getHarness(selectedId)
+      .then(setDetail)
+      .catch((e) => {
+        toast.error(
+          `Failed to load harness config: ${e instanceof Error ? e.message : "unexpected error"}`,
+        );
+      });
   }, [selectedId]);
 
   const handleCopy = async () => {

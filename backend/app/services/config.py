@@ -111,6 +111,8 @@ class DerivedModel:
 
 
 _CTX_SIZE_FLAGS = {"-c", "--ctx-size"}
+_MMPROJ_FLAGS = ("--mmproj", "-mm", "--mmproj-url", "-mmu")
+_REASONING_FLAGS = ("--reasoning", "-rea")
 
 
 def derive_models(config_content: str, managed_models: list) -> list[DerivedModel]:
@@ -126,7 +128,7 @@ def derive_models(config_content: str, managed_models: list) -> list[DerivedMode
         data = yaml.safe_load(config_content)
     except yaml.YAMLError:
         return []
-    models = (data or {}).get("models") or {}
+    models = data.get("models") or {} if isinstance(data, dict) else {}
     mmproj_repos = {m.repo_id for m in managed_models if m.mmproj_files}
 
     result = []
@@ -151,9 +153,9 @@ def derive_models(config_content: str, managed_models: list) -> list[DerivedMode
                     context = int(nxt)
                 except ValueError:
                     pass
-            elif tok == "--reasoning" and nxt == "on":
+            elif tok in _REASONING_FLAGS and nxt == "on":
                 reasoning = True
-            elif tok == "--mmproj-url":
+            elif tok in _MMPROJ_FLAGS:
                 vision = True
             elif tok in _MODEL_FLAGS:
                 repo_id, _, _ = nxt.partition(":")
@@ -210,7 +212,6 @@ def add_model_entry(content: str, model_id: str, entry: dict) -> str:
     return out.getvalue()
 
 
-_MMPROJ_FLAGS = ("--mmproj", "-mm", "--mmproj-url", "-mmu")
 # `-hf <repo>[:<quant>]` when it sits alone on its own line (block-scalar cmd,
 # one flag per line - how build_minimal_entry writes them).
 _HF_LINE_RE = re.compile(

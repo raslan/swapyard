@@ -566,6 +566,34 @@ def test_derive_models_no_vision_when_repo_has_no_downloaded_mmproj_and_no_flag(
     assert result[0].vision is False
 
 
+def test_derive_models_vision_via_mmproj_path_flag_on_local_entry_without_managed_models():
+    content = "models:\n  a:\n    cmd: llama-server -m /models/foo.gguf --mmproj /models/mmproj.gguf\n"
+    result = derive_models(content, [])
+    assert result[0].vision is True
+
+
+def test_derive_models_vision_via_mm_short_flag_on_local_entry():
+    content = "models:\n  a:\n    cmd: llama-server -m /models/foo.gguf -mm /models/mmproj.gguf\n"
+    result = derive_models(content, [])
+    assert result[0].vision is True
+
+
+def test_derive_models_detects_reasoning_via_rea_short_alias():
+    content = "models:\n  a:\n    cmd: llama-server -hf org/repo --hf-file f.gguf -rea on\n"
+    result = derive_models(content, [])
+    assert result[0].reasoning is True
+
+
+def test_derive_models_rea_auto_does_not_set_reasoning():
+    content = "models:\n  a:\n    cmd: llama-server -hf org/repo --hf-file f.gguf -rea auto\n"
+    result = derive_models(content, [])
+    assert result[0].reasoning is False
+
+
+def test_derive_models_returns_empty_when_yaml_is_not_a_mapping():
+    assert derive_models("- just\n- a\n- list\n", []) == []
+
+
 def test_derive_models_handles_local_path_entries_without_crashing():
     content = "models:\n  a:\n    cmd: llama-server -m /models/f.gguf --ctx-size 4096\n"
     result = derive_models(content, [])

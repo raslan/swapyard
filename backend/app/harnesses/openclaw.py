@@ -9,7 +9,7 @@ _PROVIDER_ID = "swapyard"
 class OpenclawHarness:
     id = "openclaw"
     name = "OpenClaw"
-    config_path = "OpenClaw's own config file (models.providers block)"
+    config_path = "openclaw.json"
     format = "jsonc"
     docs_url = "https://github.com/openclaw/openclaw"
     icon = None
@@ -18,7 +18,10 @@ class OpenclawHarness:
         return [
             {
                 "title": "Locate the models.providers block",
-                "body": "OpenClaw's own config file has a top-level \"models\" key with a \"providers\" map inside it.",
+                "body": (
+                    "Open OpenClaw's own config file (openclaw.json). It has a "
+                    "top-level \"models\" key with a \"providers\" map inside it."
+                ),
             },
             {
                 "title": "Merge in the Swapyard provider",

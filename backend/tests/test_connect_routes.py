@@ -39,11 +39,11 @@ def test_get_harness_detail_uses_placeholder_base_url_when_settings_empty(connec
 
 
 def test_get_harness_detail_uses_settings_base_url_when_configured(connect_client, monkeypatch):
-    settings_file = pytest_settings_path = None
     import json as _json
-    from app.routes.settings import SETTINGS_PATH
 
-    with open(SETTINGS_PATH, "w") as f:
+    from app.routes import settings as settings_routes
+
+    with open(settings_routes.SETTINGS_PATH, "w") as f:
         _json.dump({"hardware": None, "llama_swap_url": "http://192.168.1.10:8080", "onboarded": True}, f)
 
     resp = connect_client.get("/api/connect/harnesses/opencode")
