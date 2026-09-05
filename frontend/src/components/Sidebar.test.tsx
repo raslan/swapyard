@@ -91,6 +91,16 @@ describe("Sidebar", () => {
     await waitFor(() => expect(screen.getByTestId("config-nav-badge")).toBeInTheDocument());
   });
 
+  it("renders a Connect nav link pointing at /connect", () => {
+    render(
+      <MemoryRouter initialEntries={["/browse"]}>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+    const link = screen.getByRole("link", { name: /connect/i });
+    expect(link).toHaveAttribute("href", "/connect");
+  });
+
   it("renders a Settings nav link pointing at /settings", () => {
     render(
       <MemoryRouter initialEntries={["/browse"]}>
