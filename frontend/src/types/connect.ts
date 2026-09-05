@@ -8,7 +8,7 @@ export interface HarnessSummary {
   id: string;
   name: string;
   configPath: string;
-  format: "json" | "yaml" | "jsonc";
+  format: "json" | "yaml" | "jsonc" | "env";
   docsUrl: string;
   icon: string | null;
 }

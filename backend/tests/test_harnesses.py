@@ -132,11 +132,12 @@ def test_hermes_agent_render_shape():
     assert plain_entry["capabilities"] == {"vision": False, "reasoning": False}
 
 
-def test_all_seven_harnesses_registered_in_display_order():
+def test_all_harnesses_registered_in_display_order():
     from app.harnesses import HARNESSES
 
     assert [h.id for h in HARNESSES] == [
         "opencode", "kilo", "pi", "oh-my-pi", "openclaw", "qwen-code", "hermes-agent",
+        "continue", "cline", "aider", "llm", "openai-compatible",
     ]
 
 
@@ -147,5 +148,79 @@ def test_every_harness_renders_valid_output_for_empty_model_list():
         rendered = h.render([], BASE_URL)
         if h.format == "yaml":
             _yaml.safe_load(rendered)
-        else:
+        elif h.format == "json":
             json.loads(rendered)
+        else:
+            assert isinstance(rendered, str) and rendered != ""
+
+
+from app.harnesses import aider, cline, continue_dev, llm_cli, openai_compatible
+
+
+def test_continue_render_shape():
+    data = _yaml.safe_load(continue_dev.HARNESS.render(MODELS, BASE_URL))
+    entries = {e["name"]: e for e in data["models"]}
+
+    vision_entry = entries["vision-model"]
+    assert vision_entry["provider"] == "openai"
+    assert vision_entry["apiBase"] == BASE_URL
+    assert vision_entry["apiKey"] == "sk-local"
+    assert "image_input" in vision_entry["capabilities"]
+    assert "tool_use" in vision_entry["capabilities"]
+
+    plain_entry = entries["plain-model"]
+    assert "image_input" not in plain_entry["capabilities"]
+    assert "tool_use" in plain_entry["capabilities"]
+
+
+def test_cline_render_shape():
+    data = json.loads(cline.HARNESS.render(MODELS, BASE_URL))
+    assert data["cline.openAiBaseUrl"] == BASE_URL
+    assert data["cline.openAiApiKey"] == "sk-local"
+    assert data["cline.openAiModelId"] == "vision-model"
+
+    info = data["cline.openAiModelInfo"]
+    assert info["vision-model"]["supportsImages"] is True
+    assert info["vision-model"]["contextWindow"] == 8192
+    assert info["plain-model"]["supportsImages"] is False
+    assert "contextWindow" not in info["plain-model"]
+
+
+def test_cline_render_with_no_models_omits_model_id():
+    data = json.loads(cline.HARNESS.render([], BASE_URL))
+    assert "cline.openAiModelId" not in data
+    assert data["cline.openAiModelInfo"] == {}
+
+
+def test_aider_render_shape():
+    rendered = aider.HARNESS.render(MODELS, BASE_URL)
+    assert "# openai/vision-model  (context: 8192, vision: yes)" in rendered
+    assert "# openai/plain-model  (context: server default, vision: no)" in rendered
+
+    data = _yaml.safe_load(rendered)
+    assert data["openai-api-base"] == BASE_URL
+    assert data["openai-api-key"] == "sk-local"
+    assert data["model"] == "openai/vision-model"
+
+
+def test_llm_render_shape():
+    data = _yaml.safe_load(llm_cli.HARNESS.render(MODELS, BASE_URL))
+    vision_entry = next(e for e in data if e["model_name"] == "vision-model")
+    assert vision_entry["model_id"] == "swapyard/vision-model"
+    assert vision_entry["api_base"] == BASE_URL
+    assert vision_entry["api_key_name"] == "swapyard"
+    assert vision_entry["vision"] is True
+
+    plain_entry = next(e for e in data if e["model_name"] == "plain-model")
+    assert "vision" not in plain_entry
+
+
+def test_openai_compatible_render_shape():
+    rendered = openai_compatible.HARNESS.render(MODELS, BASE_URL)
+    assert "OPENAI_API_BASE_URL" in rendered
+    assert BASE_URL in rendered
+    assert "sk-local" in rendered
+    assert "# Models: vision-model, plain-model" in rendered
+
+    empty = openai_compatible.HARNESS.render([], BASE_URL)
+    assert "# Models: (none downloaded yet)" in empty

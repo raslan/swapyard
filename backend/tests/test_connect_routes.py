@@ -19,12 +19,13 @@ def connect_client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
-def test_list_harnesses_returns_all_seven_in_order(connect_client):
+def test_list_harnesses_returns_all_in_order(connect_client):
     resp = connect_client.get("/api/connect/harnesses")
     assert resp.status_code == 200
     body = resp.json()
     assert [h["id"] for h in body] == [
         "opencode", "kilo", "pi", "oh-my-pi", "openclaw", "qwen-code", "hermes-agent",
+        "continue", "cline", "aider", "llm", "openai-compatible",
     ]
     assert body[0]["config_path"] == "~/.config/opencode/opencode.json"
 

@@ -110,7 +110,8 @@ export function ConnectGuide() {
 
   const handleDownload = () => {
     if (!detail) return;
-    const basename = detail.configPath.split("/").pop() ?? "config";
+    const basename =
+      detail.format === "env" ? ".env" : (detail.configPath.split("/").pop() ?? "config");
     const blob = new Blob([detail.config], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -182,7 +183,9 @@ export function ConnectGuide() {
 
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">
-            {detail.configPath.split("/").pop() ?? detail.configPath}
+            {detail.format === "env"
+              ? ".env"
+              : (detail.configPath.split("/").pop() ?? detail.configPath)}
           </span>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleCopy}>
@@ -196,7 +199,13 @@ export function ConnectGuide() {
         <div className="h-96 border border-surface/40 rounded-lg overflow-hidden">
           <Editor
             height="100%"
-            language={detail.format === "jsonc" ? "json" : detail.format}
+            language={
+              detail.format === "jsonc"
+                ? "json"
+                : detail.format === "env"
+                  ? "shell"
+                  : detail.format
+            }
             theme={SWAPYARD_THEME_ID}
             value={detail.config}
             options={{ readOnly: true, minimap: { enabled: false } }}

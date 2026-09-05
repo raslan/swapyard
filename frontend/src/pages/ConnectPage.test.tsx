@@ -18,7 +18,9 @@ vi.mock("@/lib/monacoThemes", () => ({
 }));
 
 vi.mock("@monaco-editor/react", () => ({
-  Editor: ({ value }: { value: string }) => <textarea data-testid="mock-editor" value={value} readOnly />,
+  Editor: ({ value, language }: { value: string; language?: string }) => (
+    <textarea data-testid="mock-editor" data-language={language} value={value} readOnly />
+  ),
   useMonaco: () => null,
 }));
 
@@ -110,6 +112,20 @@ describe("ConnectGuide", () => {
     expect(screen.getByText("Do the thing.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /all harnesses/i })).toHaveAttribute("href", "/connect");
     expect(api.getHarness).toHaveBeenCalledWith("opencode");
+  });
+
+  it("maps format 'env' to the 'shell' Monaco language and shows .env as the filename", async () => {
+    vi.mocked(api.getHarness).mockResolvedValue({
+      ...detailFor("openai-compatible"),
+      format: "env",
+      configPath: "environment variables",
+      config: 'export OPENAI_API_BASE_URL="http://x/v1"\n',
+    } as unknown as Awaited<ReturnType<typeof api.getHarness>>);
+    renderAt("/connect/openai-compatible");
+
+    await screen.findByTestId("mock-editor");
+    expect(screen.getByTestId("mock-editor")).toHaveAttribute("data-language", "shell");
+    expect(screen.getAllByText(".env").length).toBeGreaterThan(0);
   });
 
   it("shows a not-found message when getHarness rejects, without hanging", async () => {
