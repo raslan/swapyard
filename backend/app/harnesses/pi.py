@@ -23,7 +23,7 @@ class PiHarness:
     name = "pi"
     config_path = "~/.pi/agent/models.json"
     format = "json"
-    docs_url = "https://github.com/badlogic/pi-mono"
+    docs_url = "https://pi.dev"
     icon = None
 
     def steps(self) -> list[Step]:

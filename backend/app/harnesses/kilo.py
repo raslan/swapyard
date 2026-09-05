@@ -11,7 +11,7 @@ class KiloHarness:
     name = "Kilo Code"
     config_path = "kilo.jsonc"
     format = "jsonc"
-    docs_url = "https://kilocode.ai/docs/"
+    docs_url = "https://kilocode.ai"
     icon = None
 
     def steps(self) -> list[Step]:

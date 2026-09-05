@@ -12,7 +12,7 @@ class OhMyPiHarness:
     name = "oh-my-pi"
     config_path = "~/.omp/agent/models.yml"
     format = "yaml"
-    docs_url = "https://github.com/badlogic/pi-mono"
+    docs_url = "https://omp.sh"
     icon = None
 
     def steps(self) -> list[Step]:

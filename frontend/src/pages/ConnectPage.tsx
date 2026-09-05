@@ -153,9 +153,20 @@ export function ConnectGuide() {
     <div className="flex flex-col h-full min-w-0">
       <div className="px-10 pt-10 pb-4 flex flex-col gap-3">
         {backLink}
-        <div className="flex items-center gap-3">
-          <HarnessIcon id={detail.id} className="w-7 h-7 shrink-0 text-text-primary" />
-          <h1 className="font-display text-3xl font-bold tracking-tight">{detail.name}</h1>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <HarnessIcon id={detail.id} className="w-7 h-7 shrink-0 text-text-primary" />
+            <h1 className="font-display text-3xl font-bold tracking-tight">{detail.name}</h1>
+          </div>
+          <a
+            href={detail.docsUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-sm text-text-secondary hover:text-text-primary transition-colors whitespace-nowrap"
+            data-testid="learn-more-link"
+          >
+            Learn more ↗
+          </a>
         </div>
       </div>
 

@@ -11,7 +11,7 @@ class OpencodeHarness:
     name = "opencode"
     config_path = "~/.config/opencode/opencode.json"
     format = "json"
-    docs_url = "https://opencode.ai/docs/config/"
+    docs_url = "https://opencode.ai"
     icon = None
 
     def steps(self) -> list[Step]:

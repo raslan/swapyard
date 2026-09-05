@@ -111,6 +111,7 @@ describe("ConnectGuide", () => {
     expect(await screen.findByText("Step one")).toBeInTheDocument();
     expect(screen.getByText("Do the thing.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /all harnesses/i })).toHaveAttribute("href", "/connect");
+    expect(screen.getByTestId("learn-more-link")).toHaveAttribute("href", "https://example.com");
     expect(api.getHarness).toHaveBeenCalledWith("opencode");
   });
 
