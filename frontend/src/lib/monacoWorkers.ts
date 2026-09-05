@@ -6,8 +6,10 @@ import { loader } from "@monaco-editor/react";
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import "monaco-editor/esm/vs/editor/editor.all";
 import "monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution";
+import "monaco-editor/esm/vs/language/json/monaco.contribution";
 import type * as Monaco from "monaco-editor";
 import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+import JsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
 import { configureMonacoYaml } from "monaco-yaml";
 import YamlWorker from "@/workers/yaml.worker?worker";
 
@@ -19,6 +21,7 @@ export function setupMonacoEnvironment(): void {
   self.MonacoEnvironment = {
     getWorker(_moduleId: string, label: string) {
       if (label === "yaml") return new YamlWorker();
+      if (label === "json") return new JsonWorker();
       return new EditorWorker();
     },
   };

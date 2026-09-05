@@ -1,16 +1,22 @@
-import { Editor } from "@monaco-editor/react";
-import { Terminal } from "lucide-react";
+import { Editor, useMonaco } from "@monaco-editor/react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { getHarness, getHarnesses } from "@/lib/api";
+import { HarnessIcon } from "@/lib/harnessIcons";
+import { setupMonacoEnvironment } from "@/lib/monacoWorkers";
+import { SWAPYARD_THEME_ID, registerMonacoThemes } from "@/lib/monacoThemes";
 import type { HarnessDetail, HarnessSummary } from "@/types/connect";
 
-export function ConnectPage() {
+// Must run before any <Editor> mounts (React runs child effects before parent
+// effects, so a useEffect here would fire too late) - see monacoWorkers.ts.
+setupMonacoEnvironment();
+
+export function ConnectGrid() {
   const [harnesses, setHarnesses] = useState<HarnessSummary[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<HarnessDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,7 +24,6 @@ export function ConnectPage() {
       .then((list) => {
         setHarnesses(list);
         setLoading(false);
-        if (list.length > 0) setSelectedId(list[0].id);
       })
       .catch((e) => {
         setLoading(false);
@@ -28,17 +33,74 @@ export function ConnectPage() {
       });
   }, []);
 
+  return (
+    <div className="flex flex-col h-full overflow-y-auto">
+      <div className="px-10 pt-10 pb-4">
+        <h1 className="font-display text-3xl font-bold tracking-tight mb-1.5">Connect</h1>
+        <p className="text-sm text-text-secondary">
+          Pick your coding-agent CLI for a ready-to-use config.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="px-10 pb-10 text-text-secondary">Loading harnesses...</div>
+      ) : (
+        <div className="px-10 pb-10 grid grid-cols-2 md:grid-cols-3 gap-4">
+          {harnesses.map((h) => (
+            <Link
+              key={h.id}
+              to={`/connect/${h.id}`}
+              data-testid={`harness-card-${h.id}`}
+              className="flex items-start gap-3 rounded-lg border border-surface/40 bg-surface/20 px-4 py-4 transition-colors hover:bg-surface/40"
+            >
+              <HarnessIcon id={h.id} className="w-6 h-6 shrink-0 text-text-primary" />
+              <div className="min-w-0">
+                <div className="font-display text-sm font-semibold text-text-primary truncate">
+                  {h.name}
+                </div>
+                <div className="text-xs text-text-muted truncate">{h.configPath}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ConnectGuide() {
+  const { id } = useParams<{ id: string }>();
+  const [detail, setDetail] = useState<HarnessDetail | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "notfound">("loading");
+
+  const monaco = useMonaco();
   useEffect(() => {
-    if (!selectedId) return;
+    if (!monaco) return;
+    registerMonacoThemes(monaco);
+    // Configs mapped from format "jsonc" render as "json"; allow comments so
+    // they don't get red squiggles.
+    monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+      allowComments: true,
+      validate: true,
+    });
+  }, [monaco]);
+
+  useEffect(() => {
+    if (!id) return;
+    setStatus("loading");
     setDetail(null);
-    getHarness(selectedId)
-      .then(setDetail)
+    getHarness(id)
+      .then((d) => {
+        setDetail(d);
+        setStatus("ready");
+      })
       .catch((e) => {
+        setStatus("notfound");
         toast.error(
           `Failed to load harness config: ${e instanceof Error ? e.message : "unexpected error"}`,
         );
       });
-  }, [selectedId]);
+  }, [id]);
 
   const handleCopy = async () => {
     if (!detail) return;
@@ -58,84 +120,88 @@ export function ConnectPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <div className="p-10 text-text-secondary">Loading harnesses...</div>;
+  const backLink = (
+    <Link
+      to="/connect"
+      className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      All harnesses
+    </Link>
+  );
+
+  if (status === "notfound") {
+    return (
+      <div className="flex flex-col gap-4 px-10 pt-10">
+        {backLink}
+        <p className="text-sm text-text-secondary">Harness not found.</p>
+      </div>
+    );
+  }
+
+  if (status === "loading" || !detail) {
+    return (
+      <div className="flex flex-col gap-4 px-10 pt-10">
+        {backLink}
+        <p className="text-text-secondary">Loading...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-full">
-      <aside className="w-64 border-r border-surface/40 overflow-y-auto shrink-0">
-        {harnesses.map((h) => (
-          <button
-            key={h.id}
-            data-testid={`harness-rail-item-${h.id}`}
-            onClick={() => setSelectedId(h.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-surface/20 ${
-              selectedId === h.id ? "bg-surface/40 text-text-primary" : "text-text-secondary"
-            }`}
-          >
-            <Terminal className="w-4 h-4 shrink-0" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium truncate">{h.name}</div>
-              <div className="text-xs text-text-muted truncate">{h.configPath}</div>
-            </div>
-          </button>
-        ))}
-      </aside>
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="px-10 pt-10 pb-4">
-          <h1 className="font-display text-3xl font-bold tracking-tight mb-1.5">Connect</h1>
-          <p className="text-sm text-text-secondary">
-            Generate ready-to-use config for your coding-agent CLI.
-          </p>
+    <div className="flex flex-col h-full min-w-0">
+      <div className="px-10 pt-10 pb-4 flex flex-col gap-3">
+        {backLink}
+        <div className="flex items-center gap-3">
+          <HarnessIcon id={detail.id} className="w-7 h-7 shrink-0 text-text-primary" />
+          <h1 className="font-display text-3xl font-bold tracking-tight">{detail.name}</h1>
         </div>
+      </div>
 
-        {detail && (
-          <div className="flex-1 min-h-0 flex flex-col px-10 pb-10 gap-6 overflow-y-auto">
-            {detail.baseUrlSource === "placeholder" && (
-              <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
-                No llama-swap URL configured in Settings — using a placeholder host/port.
-                Fill it in on the Settings page for a config you can paste as-is.
-              </div>
-            )}
-
-            <ol className="space-y-4">
-              {detail.steps.map((step, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-surface/40 text-xs flex items-center justify-center">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <div className="text-sm font-medium">{step.title}</div>
-                    <p className="text-sm text-text-secondary">{step.body}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">
-                {detail.configPath.split("/").pop() ?? detail.configPath}
-              </span>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleCopy}>
-                  Copy
-                </Button>
-                <Button variant="outline" onClick={handleDownload}>
-                  Download
-                </Button>
-              </div>
-            </div>
-            <div className="h-96 border border-surface/40 rounded-lg overflow-hidden">
-              <Editor
-                height="100%"
-                language={detail.format === "jsonc" ? "json" : detail.format}
-                theme="vs-dark"
-                value={detail.config}
-                options={{ readOnly: true, minimap: { enabled: false } }}
-              />
-            </div>
+      <div className="flex-1 min-h-0 flex flex-col px-10 pb-10 gap-6 overflow-y-auto">
+        {detail.baseUrlSource === "placeholder" && (
+          <div className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
+            No llama-swap URL configured in Settings — using a placeholder host/port. Fill it in on
+            the Settings page for a config you can paste as-is.
           </div>
         )}
+
+        <ol className="space-y-4">
+          {detail.steps.map((step, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="shrink-0 w-6 h-6 rounded-full bg-surface/40 text-xs flex items-center justify-center">
+                {i + 1}
+              </span>
+              <div>
+                <div className="text-sm font-medium">{step.title}</div>
+                <p className="text-sm text-text-secondary">{step.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">
+            {detail.configPath.split("/").pop() ?? detail.configPath}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleCopy}>
+              Copy
+            </Button>
+            <Button variant="outline" onClick={handleDownload}>
+              Download
+            </Button>
+          </div>
+        </div>
+        <div className="h-96 border border-surface/40 rounded-lg overflow-hidden">
+          <Editor
+            height="100%"
+            language={detail.format === "jsonc" ? "json" : detail.format}
+            theme={SWAPYARD_THEME_ID}
+            value={detail.config}
+            options={{ readOnly: true, minimap: { enabled: false } }}
+          />
+        </div>
       </div>
     </div>
   );

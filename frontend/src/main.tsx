@@ -9,7 +9,7 @@ import "./index.css";
 import { BrowseDetailPage } from "./pages/BrowseDetailPage";
 import { BrowsePage } from "./pages/BrowsePage";
 import { ConfigPage } from "./pages/ConfigPage";
-import { ConnectPage } from "./pages/ConnectPage";
+import { ConnectGrid, ConnectGuide } from "./pages/ConnectPage";
 import { ManagePage } from "./pages/ManagePage";
 import { SettingsPage } from "./pages/SettingsPage";
 
@@ -23,7 +23,8 @@ const router = createBrowserRouter([
       { path: "browse/*", element: <BrowseDetailPage /> },
       { path: "manage", element: <ManagePage /> },
       { path: "config", element: <ConfigPage /> },
-      { path: "connect", element: <ConnectPage /> },
+      { path: "connect", element: <ConnectGrid /> },
+      { path: "connect/:id", element: <ConnectGuide /> },
       { path: "settings", element: <SettingsPage /> },
     ],
   },
