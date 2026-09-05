@@ -4,6 +4,7 @@ import io
 import json
 import re
 import shlex
+from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
@@ -99,6 +100,69 @@ def model_ids_for_repo(content: str, repo_id: str) -> list[str]:
         for model_id, ref in model_refs(content).items()
         if ref["kind"] == "hf" and ref["repo_id"] == repo_id
     ]
+
+
+@dataclass(frozen=True)
+class DerivedModel:
+    id: str
+    context: int | None
+    vision: bool
+    reasoning: bool
+
+
+_CTX_SIZE_FLAGS = {"-c", "--ctx-size"}
+
+
+def derive_models(config_content: str, managed_models: list) -> list[DerivedModel]:
+    """Per config.yaml model entry, the capability facts every Connect-page
+    harness renderer needs: explicit context size (None when the entry
+    relies on --fit), whether it has a vision projector attached (an
+    explicit --mmproj-url in cmd, or a downloaded mmproj file for the same
+    -hf repo), and whether --reasoning on is set. Consumes ManagedModel
+    instances from app.services.manage (repo_id + mmproj_files) - no import
+    of that module here, to avoid a cycle; callers pass list_managed_models()'s
+    output straight through."""
+    try:
+        data = yaml.safe_load(config_content)
+    except yaml.YAMLError:
+        return []
+    models = (data or {}).get("models") or {}
+    mmproj_repos = {m.repo_id for m in managed_models if m.mmproj_files}
+
+    result = []
+    for model_id, cfg in models.items():
+        cmd = (cfg or {}).get("cmd")
+        if not cmd:
+            result.append(DerivedModel(id=model_id, context=None, vision=False, reasoning=False))
+            continue
+        try:
+            tokens = shlex.split(str(cmd))
+        except ValueError:
+            tokens = []
+
+        context: int | None = None
+        vision = False
+        reasoning = False
+        repo_id: str | None = None
+        for i, tok in enumerate(tokens[:-1]):
+            nxt = tokens[i + 1]
+            if tok in _CTX_SIZE_FLAGS:
+                try:
+                    context = int(nxt)
+                except ValueError:
+                    pass
+            elif tok == "--reasoning" and nxt == "on":
+                reasoning = True
+            elif tok == "--mmproj-url":
+                vision = True
+            elif tok in _MODEL_FLAGS:
+                repo_id, _, _ = nxt.partition(":")
+
+        if not vision and repo_id and repo_id in mmproj_repos:
+            vision = True
+
+        result.append(DerivedModel(id=model_id, context=context, vision=vision, reasoning=reasoning))
+    return result
 
 
 _RUAMEL_YAML = YAML()

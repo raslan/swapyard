@@ -4,9 +4,11 @@ import pytest
 from app.services.config import (
     ConfigConflict,
     ConfigInvalid,
+    DerivedModel,
     add_model_entry,
     apply_config,
     commit_revision,
+    derive_models,
     get_status,
     hash_content,
     list_revisions,
@@ -18,6 +20,7 @@ from app.services.config import (
     remove_models_for_repo,
     validate_config,
 )
+from app.services.manage import ManagedModel
 
 
 def test_hash_content_is_deterministic():
@@ -501,3 +504,80 @@ def test_normalize_leaves_local_path_entries_alone():
 
     assert new_content == content
     assert report == []
+
+
+# --- derive_models -------------------------------------------------
+
+
+def _managed(repo_id: str, mmproj_files: list[str] | None = None) -> ManagedModel:
+    return ManagedModel(
+        repo_id=repo_id,
+        size_on_disk=0,
+        nb_files=0,
+        last_modified=0.0,
+        gguf_files=[],
+        mmproj_files=mmproj_files or [],
+        file_sizes={},
+    )
+
+
+def test_derive_models_extracts_explicit_context_size():
+    content = "models:\n  a:\n    cmd: llama-server -hf org/repo --hf-file f.gguf --ctx-size 8192\n"
+    result = derive_models(content, [])
+    assert result == [DerivedModel(id="a", context=8192, vision=False, reasoning=False)]
+
+
+def test_derive_models_omits_context_when_no_ctx_size_flag():
+    content = "models:\n  a:\n    cmd: llama-server -hf org/repo --hf-file f.gguf --fit on\n"
+    result = derive_models(content, [])
+    assert result == [DerivedModel(id="a", context=None, vision=False, reasoning=False)]
+
+
+def test_derive_models_detects_reasoning_on():
+    content = "models:\n  a:\n    cmd: llama-server -hf org/repo --hf-file f.gguf --reasoning on\n"
+    result = derive_models(content, [])
+    assert result[0].reasoning is True
+
+
+def test_derive_models_reasoning_off_does_not_set_flag():
+    content = "models:\n  a:\n    cmd: llama-server -hf org/repo --hf-file f.gguf --reasoning off\n"
+    result = derive_models(content, [])
+    assert result[0].reasoning is False
+
+
+def test_derive_models_vision_via_explicit_mmproj_url_in_cmd():
+    content = (
+        "models:\n  a:\n    cmd: llama-server -hf org/repo --hf-file f.gguf "
+        "--mmproj-url https://huggingface.co/org/repo/resolve/main/mmproj.gguf\n"
+    )
+    result = derive_models(content, [])
+    assert result[0].vision is True
+
+
+def test_derive_models_vision_via_downloaded_mmproj_when_cmd_has_no_mmproj_url():
+    content = "models:\n  a:\n    cmd: llama-server -hf org/repo --hf-file f.gguf\n"
+    result = derive_models(content, [_managed("org/repo", mmproj_files=["mmproj.gguf"])])
+    assert result[0].vision is True
+
+
+def test_derive_models_no_vision_when_repo_has_no_downloaded_mmproj_and_no_flag():
+    content = "models:\n  a:\n    cmd: llama-server -hf org/repo --hf-file f.gguf\n"
+    result = derive_models(content, [_managed("org/repo")])
+    assert result[0].vision is False
+
+
+def test_derive_models_handles_local_path_entries_without_crashing():
+    content = "models:\n  a:\n    cmd: llama-server -m /models/f.gguf --ctx-size 4096\n"
+    result = derive_models(content, [])
+    assert result == [DerivedModel(id="a", context=4096, vision=False, reasoning=False)]
+
+
+def test_derive_models_multiple_entries_preserve_config_order():
+    content = (
+        "models:\n"
+        "  first:\n    cmd: llama-server -hf a/b --hf-file f.gguf\n"
+        "  second:\n    cmd: llama-server -hf c/d --hf-file g.gguf --ctx-size 2048\n"
+    )
+    result = derive_models(content, [])
+    assert [m.id for m in result] == ["first", "second"]
+    assert result[1].context == 2048
