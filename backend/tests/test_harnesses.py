@@ -208,7 +208,7 @@ def test_llm_render_shape():
     vision_entry = next(e for e in data if e["model_name"] == "vision-model")
     assert vision_entry["model_id"] == "swapyard/vision-model"
     assert vision_entry["api_base"] == BASE_URL
-    assert vision_entry["api_key_name"] == "swapyard"
+    assert vision_entry["api_key"] == "sk-local"
     assert vision_entry["vision"] is True
 
     plain_entry = next(e for e in data if e["model_name"] == "plain-model")

@@ -231,7 +231,7 @@ type HarnessSummaryRaw = {
   id: string;
   name: string;
   config_path: string;
-  format: "json" | "yaml" | "jsonc";
+  format: "json" | "yaml" | "jsonc" | "env";
   docs_url: string;
   icon: string | null;
 };

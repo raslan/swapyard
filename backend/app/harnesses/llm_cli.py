@@ -27,10 +27,11 @@ class LlmCliHarness:
                 "body": "Add the list below, merging with any entries already present.",
             },
             {
-                "title": "Set the API key",
+                "title": "Set the API key (optional)",
                 "body": (
-                    "Run: llm keys set swapyard and paste sk-local. llm requires a "
-                    "key even for local endpoints; api_key_name points at it."
+                    "The config above already inlines the key. Optionally, run: llm keys set swapyard "
+                    "and paste sk-local, then remove the api_key line from the config if you prefer "
+                    "not to store it in plaintext."
                 ),
             },
         ]
@@ -42,7 +43,7 @@ class LlmCliHarness:
                 "model_id": f"swapyard/{m.id}",
                 "model_name": m.id,
                 "api_base": base_url,
-                "api_key_name": "swapyard",
+                "api_key": "sk-local",
                 "can_stream": True,
             }
             if m.vision:
