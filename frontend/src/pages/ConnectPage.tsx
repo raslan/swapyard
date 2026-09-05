@@ -45,20 +45,20 @@ export function ConnectGrid() {
       {loading ? (
         <div className="px-10 pb-10 text-text-secondary">Loading harnesses...</div>
       ) : (
-        <div className="px-10 pb-10 grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="px-10 pb-10 grid gap-4 grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))]">
           {harnesses.map((h) => (
             <Link
               key={h.id}
               to={`/connect/${h.id}`}
               data-testid={`harness-card-${h.id}`}
-              className="flex items-start gap-3 rounded-lg border border-surface/40 bg-surface/20 px-4 py-4 transition-colors hover:bg-surface/40"
+              className="group flex min-h-[168px] flex-col items-center justify-center gap-3 rounded-xl border border-surface/40 bg-surface/20 px-6 py-8 text-center transition-colors hover:border-surface/60 hover:bg-surface/40"
             >
-              <HarnessIcon id={h.id} className="w-6 h-6 shrink-0 text-text-primary" />
-              <div className="min-w-0">
-                <div className="font-display text-sm font-semibold text-text-primary truncate">
-                  {h.name}
-                </div>
-                <div className="text-xs text-text-muted truncate">{h.configPath}</div>
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface/40 text-text-primary transition-colors group-hover:bg-surface/60">
+                <HarnessIcon id={h.id} className="h-7 w-7" />
+              </span>
+              <div className="min-w-0 max-w-full">
+                <div className="font-display text-base font-semibold text-text-primary">{h.name}</div>
+                <div className="mt-0.5 truncate text-xs text-text-muted">{h.configPath}</div>
               </div>
             </Link>
           ))}
