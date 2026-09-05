@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.8.0](https://github.com/raslan/swapyard/compare/v1.7.0...v1.8.0) (2026-09-05)
+
+
+### Features
+
+* add Connect page API client and types ([d06815f](https://github.com/raslan/swapyard/commit/d06815fa8ded3f75a7ef74e83392cffed5021cbf))
+* add Connect page, sidebar entry and route ([049f1a1](https://github.com/raslan/swapyard/commit/049f1a1acdb6f55c738fec8c393c4ca9da9867ad))
+* add Continue, Cline, Aider, llm and generic OpenAI-compatible Connect targets ([c4d4fad](https://github.com/raslan/swapyard/commit/c4d4fad9f20dcd7e1a58b140367e290123dafb67))
+* add derive_models for Connect page harness rendering ([2ec1960](https://github.com/raslan/swapyard/commit/2ec19607c731ed241c589284582928083a49b193))
+* add GET /api/connect/harnesses routes ([2d52947](https://github.com/raslan/swapyard/commit/2d529476f61d860b44b92dacd9482f231edad053))
+* add opencode and kilo Connect-page harness renderers ([ca50267](https://github.com/raslan/swapyard/commit/ca50267eb199e07d9d6596ba7f21d206e7a3f1b0))
+* add pi, oh-my-pi and openclaw Connect-page harness renderers ([e212b29](https://github.com/raslan/swapyard/commit/e212b29d3154fdf89b7128d50dce3d8064751244))
+* add qwen-code and hermes-agent Connect-page harness renderers ([335c26a](https://github.com/raslan/swapyard/commit/335c26a2b131a753fe202bc0b54dc9a45de4c84c))
+* Connect page card-grid redesign, harness icons, JSON highlight fix ([5cd5038](https://github.com/raslan/swapyard/commit/5cd50383ff2baf798ac9b7e5b37bcacbcdf6adad))
+* surface per-tool docs link on Connect guide, fix docs_url values ([0db4ace](https://github.com/raslan/swapyard/commit/0db4acefa23f37160779a765a885ab9af12616e1))
+
+
+### Bug Fixes
+
+* address Connect page final-review findings ([66ef1e0](https://github.com/raslan/swapyard/commit/66ef1e02e4fd8d99844dd4dbb5b893b5d313fbe4))
+* inline sk-local in llm CLI Connect config, widen raw format type ([1058558](https://github.com/raslan/swapyard/commit/1058558cfa7ee96948ff7e6b82e863503733fa1e))
+
 ## [1.7.0](https://github.com/raslan/swapyard/compare/v1.6.0...v1.7.0) (2026-08-28)
 
 
