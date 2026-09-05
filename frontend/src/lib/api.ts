@@ -5,6 +5,7 @@ import type {
   ConfigStatus,
   LlamaServerFlag,
 } from "@/types/config";
+import type { HarnessDetail, HarnessSummary } from "@/types/connect";
 import type { DownloadState } from "@/types/download";
 import type { DiscoverSections, ManagedModel, ModelDetail, ModelSummary } from "@/types/model";
 import type { HardwareProfile, Settings } from "@/types/settings";
@@ -224,6 +225,47 @@ export async function getConfigHistory(): Promise<ConfigRevision[]> {
 
 export async function getConfigFlags(): Promise<LlamaServerFlag[]> {
   return request<LlamaServerFlag[]>("/api/config/flags");
+}
+
+type HarnessSummaryRaw = {
+  id: string;
+  name: string;
+  config_path: string;
+  format: "json" | "yaml" | "jsonc";
+  docs_url: string;
+  icon: string | null;
+};
+
+function toHarnessSummary(h: HarnessSummaryRaw): HarnessSummary {
+  return {
+    id: h.id,
+    name: h.name,
+    configPath: h.config_path,
+    format: h.format,
+    docsUrl: h.docs_url,
+    icon: h.icon,
+  };
+}
+
+export async function getHarnesses(): Promise<HarnessSummary[]> {
+  const raw = await request<HarnessSummaryRaw[]>("/api/connect/harnesses");
+  return raw.map(toHarnessSummary);
+}
+
+export async function getHarness(id: string): Promise<HarnessDetail> {
+  const raw = await request<
+    HarnessSummaryRaw & {
+      steps: { title: string; body: string; code: string | null }[];
+      config: string;
+      base_url_source: "settings" | "placeholder";
+    }
+  >(`/api/connect/harnesses/${id}`);
+  return {
+    ...toHarnessSummary(raw),
+    steps: raw.steps,
+    config: raw.config,
+    baseUrlSource: raw.base_url_source,
+  };
 }
 
 export interface NormalizeReportItem {
