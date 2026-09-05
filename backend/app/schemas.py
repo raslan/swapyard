@@ -137,6 +137,27 @@ class ConfigStatusResponse(BaseModel):
     timestamp: float | None = None
 
 
+class ConnectStepResponse(BaseModel):
+    title: str
+    body: str
+    code: str | None = None
+
+
+class ConnectHarnessSummaryResponse(BaseModel):
+    id: str
+    name: str
+    config_path: str
+    format: str
+    docs_url: str
+    icon: str | None = None
+
+
+class ConnectHarnessDetailResponse(ConnectHarnessSummaryResponse):
+    steps: list[ConnectStepResponse]
+    config: str
+    base_url_source: Literal["settings", "placeholder"]
+
+
 class SettingsResponse(BaseModel):
     hardware: HardwareProfileSchema | None
     llama_swap_url: str | None = None
